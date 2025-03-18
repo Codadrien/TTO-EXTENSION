@@ -1,3 +1,4 @@
+/* Style pour la surbrillance des images au survol */
 .highlight {
     background-color: transparent;
     outline: 2px solid rgba(255, 119, 0, 0.668);
@@ -5,14 +6,17 @@
     z-index: 2147483646;
 }
 
+/* Style du curseur en mode inspection */
 body.inspection-mode {
     cursor: crosshair !important;
 }
 
+/* Style du curseur sur les images en mode inspection */
 body.inspection-mode img {
     cursor: crosshair !important;
 }
 
+/* Style de la barre latérale principale */
 #image-sidebar {
     position: absolute;
     right: 0;
@@ -28,6 +32,7 @@ body.inspection-mode img {
     display: none; /* Masquer le volet initialement */
 }
 
+/* Style général des boutons dans la barre latérale */
 #image-sidebar button {
     display: block;
     width: 100%;
@@ -38,22 +43,27 @@ body.inspection-mode img {
     cursor: pointer;
 }
 
+/* Style du bouton de téléchargement */
 .dl-button {
     background-color: #0056b3;
 }
 
+/* Effet de survol du bouton de téléchargement */
 .dl-button:hover {
     background-color: #458edd;
 }
 
+/* Style du bouton de suppression */
 .delete-btn {
     background-color: rgb(196, 40, 40);
 }
 
+/* Effet de survol du bouton de suppression */
 .delete-btn:hover {
     background-color: #8f4d4d;
 }
 
+/* Style des images dans la barre latérale */
 #image-sidebar img {
     outline: none; /* Désactiver le outline pour les images dans le volet */
 }
