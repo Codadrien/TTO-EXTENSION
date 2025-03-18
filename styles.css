@@ -1,0 +1,59 @@
+.highlight {
+    background-color: transparent;
+    outline: 2px solid rgba(255, 119, 0, 0.668);
+    user-select: none;
+    z-index: 2147483646;
+}
+
+body.inspection-mode {
+    cursor: crosshair !important;
+}
+
+body.inspection-mode img {
+    cursor: crosshair !important;
+}
+
+#image-sidebar {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 12%; /* Le volet prend 12% de la largeur de la fenêtre */
+    height: 100%;
+    background-color: rgb(193, 187, 187);
+    border-radius: 0px 0px 0px 10px;
+    overflow-y: auto;
+    padding: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    z-index: 2147483647; /* Assurez-vous que le volet est au-dessus de tout */
+    display: none; /* Masquer le volet initialement */
+}
+
+#image-sidebar button {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 5px;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.dl-button {
+    background-color: #0056b3;
+}
+
+.dl-button:hover {
+    background-color: #458edd;
+}
+
+.delete-btn {
+    background-color: rgb(196, 40, 40);
+}
+
+.delete-btn:hover {
+    background-color: #8f4d4d;
+}
+
+#image-sidebar img {
+    outline: none; /* Désactiver le outline pour les images dans le volet */
+}
