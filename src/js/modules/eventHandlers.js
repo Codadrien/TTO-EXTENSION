@@ -14,7 +14,7 @@ class EventHandlers {
         document.addEventListener('keyup', this.handleKeyUp.bind(this));
         document.addEventListener('mousemove', this.handleMouseMove.bind(this));
         document.addEventListener('mouseover', this.handleMouseOver.bind(this));
-        document.addEventListener('click', this.handleClick.bind(this));
+        document.addEventListener('click', this.handleClick.bind(this), true);
     }
 
     // Gère les événements de touche enfoncée
@@ -75,10 +75,17 @@ class EventHandlers {
 
     // Gère les clics sur les images
     handleClick(e) {
-        if (this.isActive && e.target.tagName === 'IMG') {
-            e.preventDefault();
+        // Vérifie si l'élément cliqué est une image ou a une image comme parent
+        const img = e.target.tagName === 'IMG' ? e.target : e.target.querySelector('img');
+
+        if (this.isActive && img) {
+            // Bloque complètement l'événement de clic
+            e.preventDefault(); // Empêche le comportement par défaut (comme ouvrir un lien)
+            e.stopPropagation(); // Empêche l'événement de "remonter" dans le DOM
+            e.stopImmediatePropagation(); // Empêche TOUS les autres gestionnaires d'événements de s'exécuter
+
             // Ajoute l'image cliquée à la barre latérale
-            this.sidebar.addImage(e.target.src);
+            this.sidebar.addImage(img.src);
         }
     }
 
