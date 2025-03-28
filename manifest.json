@@ -4,8 +4,9 @@
     "version": "1.0",
     "description": "Extension pour surligner les éléments avec CTRL",
     "permissions": [
-        "activeTab",
-        "downloads"
+        "downloads",
+        "downloads.shelf",
+        "storage"
     ],
     "background": {
         "service_worker": "src/js/background.js"
