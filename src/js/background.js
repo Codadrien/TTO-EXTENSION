@@ -4,6 +4,11 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.permissions.getAll(permissions => {
         console.log('[TTO-EXTENSION] Permissions actuelles:', permissions);
     });
+    
+    // Vérifie le dossier de téléchargement par défaut
+    chrome.downloads.getFileIcon(0, {size: 16}, (iconUrl) => {
+        console.log('[TTO-EXTENSION] Dossier de téléchargement par défaut:', chrome.downloads.getFileIcon);
+    });
 });
 
 // Fonction pour vérifier le dossier parent
@@ -19,6 +24,21 @@ async function checkParentDirectory(filename) {
         });
         
         console.log('[TTO-EXTENSION] État du dossier parent:', result.length > 0 ? 'existe' : 'n\'existe pas');
+        
+        // Vérifie spécifiquement le dossier de la date
+        const dateDir = parentDir.split('/')[0];
+        const dateResult = await chrome.downloads.search({
+            filename: dateDir + '/*'
+        });
+        console.log('[TTO-EXTENSION] État du dossier date:', dateResult.length > 0 ? 'existe' : 'n\'existe pas');
+        
+        // Vérifie spécifiquement le dossier du produit
+        const productDir = parentDir;
+        const productResult = await chrome.downloads.search({
+            filename: productDir + '/*'
+        });
+        console.log('[TTO-EXTENSION] État du dossier produit:', productResult.length > 0 ? 'existe' : 'n\'existe pas');
+        
         return true;
     } catch (error) {
         console.error('[TTO-EXTENSION] Erreur lors de la vérification du dossier parent:', error);
@@ -48,8 +68,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }, downloadId => {
                     if (chrome.runtime.lastError) {
                         console.error('[TTO-EXTENSION] Erreur de téléchargement:', chrome.runtime.lastError);
+                        console.error('[TTO-EXTENSION] Détails de l\'erreur:', {
+                            message: chrome.runtime.lastError.message,
+                            stack: chrome.runtime.lastError.stack
+                        });
                     } else {
                         console.log('[TTO-EXTENSION] Téléchargement initié, ID:', downloadId);
+                        
+                        // Surveille l'état du téléchargement
+                        const checkDownloadStatus = (id) => {
+                            chrome.downloads.search({id: id}, (downloads) => {
+                                if (downloads && downloads[0]) {
+                                    const download = downloads[0];
+                                    console.log('[TTO-EXTENSION] État du téléchargement:', {
+                                        id: download.id,
+                                        state: download.state,
+                                        error: download.error,
+                                        filename: download.filename,
+                                        bytesReceived: download.bytesReceived,
+                                        totalBytes: download.totalBytes,
+                                        danger: download.danger,
+                                        mimeType: download.mimeType
+                                    });
+
+                                    // Continue de surveiller si le téléchargement est en cours
+                                    if (download.state === 'in_progress') {
+                                        setTimeout(() => checkDownloadStatus(id), 1000);
+                                    }
+                                }
+                            });
+                        };
+
+                        // Démarrer la surveillance
+                        checkDownloadStatus(downloadId);
                     }
                 });
             } else {
