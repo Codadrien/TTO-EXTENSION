@@ -6,33 +6,23 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
-// Fonction pour créer le dossier parent
-async function createParentDirectory(filename) {
+// Fonction pour vérifier le dossier parent
+async function checkParentDirectory(filename) {
     try {
         // Extrait le chemin du dossier parent
         const parentDir = filename.split('/').slice(0, -1).join('/');
-        console.log('[TTO-EXTENSION] Tentative de création du dossier parent:', parentDir);
+        console.log('[TTO-EXTENSION] Vérification du dossier parent:', parentDir);
         
         // Vérifie si le dossier existe déjà
         const result = await chrome.downloads.search({
             filename: parentDir + '/*'
         });
         
-        if (result.length === 0) {
-            console.log('[TTO-EXTENSION] Création du dossier parent:', parentDir);
-            // Crée un fichier .folder pour marquer le dossier
-            await chrome.downloads.download({
-                url: 'data:text/plain;base64,',
-                filename: parentDir + '/.folder',
-                saveAs: false
-            });
-        } else {
-            console.log('[TTO-EXTENSION] Le dossier parent existe déjà:', parentDir);
-        }
+        console.log('[TTO-EXTENSION] État du dossier parent:', result.length > 0 ? 'existe' : 'n\'existe pas');
         return true;
     } catch (error) {
-        console.error('[TTO-EXTENSION] Erreur lors de la création du dossier parent:', error);
-        return false;
+        console.error('[TTO-EXTENSION] Erreur lors de la vérification du dossier parent:', error);
+        return true; // On continue même en cas d'erreur
     }
 }
 
@@ -46,12 +36,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }, async hasPermission => {
             console.log('[TTO-EXTENSION] Permission de téléchargement:', hasPermission);
             if (hasPermission) {
-                // Crée d'abord le dossier parent
-                const dirCreated = await createParentDirectory(message.filename);
-                if (!dirCreated) {
-                    console.error('[TTO-EXTENSION] Impossible de créer le dossier parent, téléchargement annulé');
-                    return;
-                }
+                // Vérifie le dossier parent sans bloquer
+                await checkParentDirectory(message.filename);
 
                 // Télécharge le fichier avec le chemin spécifié
                 chrome.downloads.download({
