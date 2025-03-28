@@ -16,28 +16,30 @@ async function checkParentDirectory(filename) {
     try {
         // Extrait le chemin du dossier parent
         const parentDir = filename.split('/').slice(0, -1).join('/');
-        console.log('[TTO-EXTENSION] Vérification du dossier parent:', parentDir);
+        console.log('[TTO-EXTENSION] Chemin du dossier parent:', parentDir);
         
-        // Vérifie si le dossier existe déjà
+        // Extrait les composants du chemin
+        const pathComponents = parentDir.split('/');
+        console.log('[TTO-EXTENSION] Composants du chemin:', pathComponents);
+        
+        // Vérifie le dossier de la date
+        const dateDir = pathComponents[0];
+        console.log('[TTO-EXTENSION] Dossier date:', dateDir);
+        
+        // Vérifie le dossier du produit
+        const productDir = pathComponents[1];
+        console.log('[TTO-EXTENSION] Dossier produit:', productDir);
+
+        // Vérifie si le dossier existe dans le dossier de téléchargement
         const result = await chrome.downloads.search({
             filename: parentDir + '/*'
         });
         
-        console.log('[TTO-EXTENSION] État du dossier parent:', result.length > 0 ? 'existe' : 'n\'existe pas');
-        
-        // Vérifie spécifiquement le dossier de la date
-        const dateDir = parentDir.split('/')[0];
-        const dateResult = await chrome.downloads.search({
-            filename: dateDir + '/*'
-        });
-        console.log('[TTO-EXTENSION] État du dossier date:', dateResult.length > 0 ? 'existe' : 'n\'existe pas');
-        
-        // Vérifie spécifiquement le dossier du produit
-        const productDir = parentDir;
-        const productResult = await chrome.downloads.search({
-            filename: productDir + '/*'
-        });
-        console.log('[TTO-EXTENSION] État du dossier produit:', productResult.length > 0 ? 'existe' : 'n\'existe pas');
+        if (result.length === 0) {
+            console.log('[TTO-EXTENSION] ATTENTION: Le dossier n\'existe pas dans le dossier de téléchargement');
+        } else {
+            console.log('[TTO-EXTENSION] Le dossier existe dans le dossier de téléchargement');
+        }
         
         return true;
     } catch (error) {
