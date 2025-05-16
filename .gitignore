@@ -1,0 +1,18 @@
+# Dépendances Node.js
+node_modules/
+
+# Build Vite/React
+dist/
+
+# Fichiers de logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Système
+.DS_Store
+Thumbs.db
+
+# Environnement local
+.env
+.env.*

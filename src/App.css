@@ -1,0 +1,56 @@
+/* Conteneur principal de l'application */
+.app-container {
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Style du titre principal */
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Style du bouton d'action */
+.action-button {
+  background-color: #4285f4; /* Couleur Google */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin: 20px 0;
+}
+
+/* Effet au survol du bouton */
+.action-button:hover {
+  background-color: #3367d6;
+}
+
+/* Style du conteneur de message */
+.message {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #e6f4ea;
+  border-radius: 8px;
+  border-left: 4px solid #34a853;
+  animation: fadeIn 0.5s ease-in;
+}
+
+/* Style du texte Hello World */
+.message h2 {
+  color: #137333;
+  font-size: 1.8rem;
+}
+
+/* Animation pour faire apparaître le message */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
