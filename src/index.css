@@ -1,10 +1,6 @@
 /* Style principal du panneau */
 .custom-side-panel {
-    position: fixed;
-    top: 0;
-    right: 0;
     width: 500px;
-    height: 62vh;
     background: #fff;
     box-shadow: -4px 0 16px rgba(0,0,0,0.15);
     z-index: 999999;
