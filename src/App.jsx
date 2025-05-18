@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'; // On importe useEffect ET useState
 import './index.css'; // On importe le CSS principal
+import { getImages } from './services/api';
 
 function App() {
   // State pour stocker la liste des URLs d'images
@@ -8,16 +9,10 @@ function App() {
   // State pour stocker les infos dynamiques de chaque image (dimensions)
   const [imageInfos, setImageInfos] = useState({});
 
-  // Charger le JSON une seule fois au montage
   useEffect(() => {
-    fetch('/test-data.json')
-      .then((response) => response.json())
-      .then((data) => {
-        setImages(data); // On stocke le tableau d'URLs dans le state
-      })
-      .catch((error) => {
-        console.error('Erreur lors du chargement du fichier JSON :', error);
-      });
+    getImages()
+      .then(data => setImages(data))
+      .catch(error => console.error('Erreur getImages:', error));
   }, []);
 
   // Pour chaque image, charger dynamiquement les dimensions (largeur/hauteur)
