@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'; // On importe useEffect ET useState
 import './index.css'; // On importe le CSS principal
-import { getImages } from './services/api';
+// On importe la fonction qui va récupérer les images via le content script
+import { fetchImagesFromContentScript } from './services/api';
 
 function App() {
   // State pour stocker la liste des URLs d'images
@@ -9,10 +10,15 @@ function App() {
   // State pour stocker les infos dynamiques de chaque image (dimensions)
   const [imageInfos, setImageInfos] = useState({});
 
+  // On utilise useEffect pour récupérer les images une seule fois au chargement du composant
+  // fetchImagesFromContentScript va envoyer un message à la page active pour demander le tableau d'images
   useEffect(() => {
-    getImages()
-      .then(data => setImages(data))
-      .catch(error => console.error('Erreur getImages:', error));
+    fetchImagesFromContentScript()
+      .then(data => {
+        console.log('[App.jsx] Images reçues dans React :', data);
+        setImages(data);
+      })
+      .catch(error => console.error(error));
   }, []);
 
   // Pour chaque image, charger dynamiquement les dimensions (largeur/hauteur)
