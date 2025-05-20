@@ -2,12 +2,6 @@
 
 Cette extension Google Chrome est développée avec React et utilise Vite pour le hot reload pendant le développement.
 
-## Fonctionnalités
-
-- Interface moderne construite avec React
-- Affichage de "Hello World" au clic sur un bouton
-- Hot reload pendant le développement grâce à Vite
-
 ## Installation pour le développement
 
 1. Clonez ce dépôt ou téléchargez les fichiers
@@ -34,25 +28,3 @@ Cette extension Google Chrome est développée avec React et utilise Vite pour l
 3. Activez le "Mode développeur" (coin supérieur droit)
 4. Cliquez sur "Charger l'extension non empaquetée"
 5. Sélectionnez le dossier du projet (assurez-vous d'inclure le manifest.json)
-
-## Personnalisation
-
-1. Placez vos icônes dans le dossier `icons` (formats recommandés : 16x16, 48x48, 128x128 px)
-2. Modifiez le fichier `src/App.jsx` pour changer le comportement de l'extension
-3. Personnalisez les styles dans `src/App.css`
-
-## Structure du projet
-
-```
-├── icons/               # Dossier pour les icônes de l'extension
-├── src/                 # Code source React
-│   ├── App.jsx          # Composant principal
-│   ├── App.css          # Styles du composant
-│   ├── main.jsx         # Point d'entrée React
-│   └── index.css        # Styles globaux
-├── background.js        # Script d'arrière-plan de l'extension
-├── index.html           # Page HTML principale
-├── manifest.json        # Configuration de l'extension Chrome
-├── package.json         # Dépendances et scripts
-└── vite.config.js       # Configuration de Vite
-```

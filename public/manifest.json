@@ -12,5 +12,14 @@
     "default_popup": "index.html",
     "default_title": "Extension React Vite"
   },
-  "permissions": ["activeTab"]
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ]
+  
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'; // On importe useEffect ET useState
 import './index.css'; // On importe le CSS principal
-import { getImages } from './services/api';
+import { getImages } from './services/apiService';
 
 function App() {
   // State pour stocker la liste des URLs d'images
