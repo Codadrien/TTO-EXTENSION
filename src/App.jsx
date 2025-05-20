@@ -17,7 +17,7 @@ function App() {
 
   // Pour chaque image, charger dynamiquement les dimensions (largeur/hauteur)
   useEffect(() => {
-    images.forEach((url) => {
+    images.forEach(({url}) => {
       // Si on n'a pas déjà les infos pour cette image
       if (!imageInfos[url]) {
         const img = new window.Image();
@@ -33,12 +33,6 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images]);
 
-  // Fonction utilitaire pour extraire l'extension du fichier à partir de l'URL
-  function getExtension(url) {
-    const match = url.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
-    return match ? match[1] : '?';
-  }
-
   return (
     <div id="custom-side-panel" className="custom-side-panel visible">
       {/* Header du panneau */}
@@ -47,7 +41,7 @@ function App() {
       </div>
       {/* Grille d'images */}
       <div id="imageContainer" className="image-grid">
-        {images.map((url, idx) => (
+        {images.map(({url, format, weight}, idx) => (
           <div className="image-card" key={idx}>
             {/* L'image */}
             <img className="image-item" src={url} alt={`Image ${idx + 1}`} />
@@ -58,12 +52,12 @@ function App() {
                 {imageInfos[url] ? `${imageInfos[url].width}x${imageInfos[url].height}` : '?x?'}
               </div>
               <div className="format">
-                {/* Extension du fichier */}
-                {getExtension(url)}
+                {/* Format détecté */}
+                {format}
               </div>
               <div className="weight">
                 {/* Poids non dispo côté client sans HEAD, donc "?" */}
-                ?
+                {weight ? `${weight}Ko` : '?'}
               </div>
             </div>
           </div>
