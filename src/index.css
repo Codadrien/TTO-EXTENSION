@@ -8,7 +8,6 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    border-radius: 0 0 12px 12px;
     box-sizing: border-box;
     /* Animation slide-in/slide-out */
     transform: translateX(100%);
@@ -17,6 +16,9 @@
 }
 
 .image-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
@@ -32,7 +34,11 @@
     transform: translateX(0);
 }
 
-body.is-panel-html .custom-side-panel {
+.body-panel-tto {
+    margin: 0px;
+}
+
+.body-panel-tto.is-panel-html .custom-side-panel {
     transform: none !important;
     transition: none !important;
 }
@@ -46,17 +52,21 @@ body.is-panel-html .custom-side-panel {
 }
 
 .image-card {
-    position: relative; /* Nécessaire pour positionner le ::after */
-    overflow: hidden;   /* Pour éviter que le dégradé déborde */
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+    padding: 0;
+    margin: 0 8px 16px 0; /* Facultatif : espace entre les cartes */
+    background: none;
+    width: auto;
+    height: auto;
 }
 
 .image-card .image-item {
     display: block;
     width: 100%;
     height: auto;
+    vertical-align: bottom;
 }
 
 /* Pseudo-élément pour ajouter un dégradé noir en bas de chaque image-card */
@@ -76,11 +86,11 @@ body.is-panel-html .custom-side-panel {
     position: absolute;
     bottom: 5px;
     left: 7px;
-    width: 100%;
+    width: calc(100% - 14px); /* Pour éviter de dépasser à droite */
     color: #fff;
     font-family: rubik;
     font-size: 12px;
-    z-index: 2; /* Le texte passe au-dessus du dégradé */
+    z-index: 2;
     display: flex;
     gap: 10px;
 }

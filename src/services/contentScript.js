@@ -49,7 +49,7 @@ function collectAttrUrls() {
 }
 
 /**
- * Filtre les images dont la largeur naturelle dépasse le seuil.
+ * Filtre les images dont la hauteur naturelle dépasse le seuil.
  * @param {string[]} urls
  * @param {number} threshold
  * @returns {Promise<string[]>}
@@ -59,20 +59,23 @@ function filterLargeImages(urls, threshold = 500) {
   const promises = urls.map(url => new Promise(resolve => {
     const img = new Image();
     img.src = url;
-    img.onload = () => resolve({ url, width: img.naturalWidth });
+    img.onload = () => resolve({ url, height: img.naturalHeight });
     img.onerror = () => resolve(null);
   }));
   return Promise.all(promises).then(results => {
-    const filtered = results
-      .filter(item => item && item.width > threshold)
-      .map(item => item.url);
-    console.log(`[contentScript] filterLargeImages: ${filtered.length} URLs > ${threshold}px`);
+    // Garde les items valides au-dessus du seuil de hauteur
+    const filteredItems = results.filter(item => item && item.height > threshold);
+    // Tri décroissant sur naturalHeight
+    filteredItems.sort((a, b) => b.height - a.height);
+    // Extrait les URLs triées
+    const filtered = filteredItems.map(item => item.url);
+    console.log(`[contentScript] filterLargeImages: ${filtered.length} URLs > ${threshold}px triées par hauteur`);
     return filtered;
   });
 }
 
 /**
- * Agrège toutes les URLs, dedupe, et filtre par largeur.
+ * Agrège toutes les URLs, dedupe, et filtre par hauteur.
  * @param {number} threshold
  * @returns {Promise<string[]>}
  */

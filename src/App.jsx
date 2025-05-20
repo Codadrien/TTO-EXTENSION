@@ -57,7 +57,7 @@ function App() {
               </div>
               <div className="weight">
                 {/* Poids non dispo côté client sans HEAD, donc "?" */}
-                {weight ? `${weight}Ko` : '?'}
+                {weight ? `${weight} Ko` : '?'}
               </div>
             </div>
           </div>

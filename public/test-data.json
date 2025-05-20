@@ -1,20 +1,9 @@
 [
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Front-View.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Hover.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Back-View.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Side-View.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Hood.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Full-Body.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Detail-1.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Detail-2.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Detail-3.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Pit-Zip.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Flat.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Front-View.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Hover.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Back-View.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Side-View.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Hood.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000006794-Beta-AR-Jacket-Stormhood-Black-Women-s-Full-Body.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1",
-  "https://cdn.sanity.io/images/inkbj32c/production/a12a000a4cb8d711cab5c88bb8adbad981b1bc84-1440x960.jpg?auto=format&q=75"
+  {"url": "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000009556-Atom-Hoody-Void-Front-View.jpg?auto=format%2Ccompress&q=75&fill=white", "format": "avif", "weight": 171.99},
+  {"url": "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000009556-Atom-Hoody-Void-Back-View.jpg?auto=format%2Ccompress&q=75&fill=white", "format": "avif", "weight": 225.8},
+  {"url": "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000009556-Atom-Hoody-Void-Side-View.jpg?auto=format%2Ccompress&q=75&fill=white", "format": "avif", "weight": 137.55},
+  {"url": "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000009556-Atom-Hoody-Void-Full-Body.jpg?auto=format%2Ccompress&q=75&fill=white", "format": "avif", "weight": 160.75},
+  {"url": "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000009556-Atom-Hoody-Void-Detail-1.jpg?auto=format%2Ccompress&q=75&fill=white", "format": "avif", "weight": 235.99},
+  {"url": "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000009556-Atom-Hoody-Void-Detail-2.jpg?auto=format%2Ccompress&q=75&fill=white", "format": "avif", "weight": 309.31},
+  {"url": "https://images-dynamic-arcteryx.imgix.net/details/1350x1710/S25-X000009556-Atom-Hoody-Void-Front-View.jpg?auto=format%2Ccompress&q=70&fit=crop&fill=white&ixlib=react-9.8.1&w=927", "format": "avif", "weight": 67.64}
 ]
