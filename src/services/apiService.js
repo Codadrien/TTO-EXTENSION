@@ -2,7 +2,7 @@
 
 /**
  * Récupère les images de la page active via le content script.
- * En local (ex. http://localhost:5173), on peut fallback vers un JSON de test.
+ * En local (ex. http://localhost), on peut fallback vers un JSON de test.
  */
 export async function getImages() {
     // Si on est en dev local, on peut charger un fichier JSON
