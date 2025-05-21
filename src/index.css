@@ -66,6 +66,7 @@
     display: block;
     width: 100%;
     height: auto;
+    vertical-align: bottom;
 }
 
 /* Pseudo-élément pour ajouter un dégradé noir en bas de chaque image-card */
