@@ -9,9 +9,17 @@ function App() {
   // State pour stocker les infos dynamiques de chaque image (dimensions)
   const [imageInfos, setImageInfos] = useState({});
 
+  // State pour stocker le nombre d'images total et filtré
+  const [totalCount, setTotalCount] = useState(0);
+  const [largeCount, setLargeCount] = useState(0);
+
   useEffect(() => {
     getImages()
-      .then(data => setImages(data))
+      .then(({ images: imgs, totalCount: total, largeCount: large }) => {
+        setImages(imgs);
+        setTotalCount(total);
+        setLargeCount(large);
+      })
       .catch(error => console.error('Erreur getImages:', error));
   }, []);
 
@@ -37,7 +45,11 @@ function App() {
     <div id="custom-side-panel" className="custom-side-panel visible">
       {/* Header du panneau */}
       <div id="header-tto" className="header-tto">
-        Extension TTO
+        Extension Photo TTO
+      </div>
+      {/* Affichage des compteurs */}
+      <div className="image-counts">
+        <strong>{totalCount}</strong> images détectées et <strong>{largeCount}</strong> &gt; 500px
       </div>
       {/* Grille d'images */}
       <div id="imageContainer" className="image-grid">

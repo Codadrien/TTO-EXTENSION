@@ -5,11 +5,20 @@
  * En local (ex. http://localhost), on peut fallback vers un JSON de test.
  */
 export async function getImages() {
-    // Si on est en dev local, on peut charger un fichier JSON
-    if (window.location.origin.includes('localhost')) {
+    // Dev local avec Vite : fallback vers test-data.json
+    if (import.meta.env.DEV) {
       const res = await fetch('/test-data.json');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
+      const data = await res.json();
+      // Retourner au format attendu
+      if (Array.isArray(data)) {
+        return { images: data, totalCount: data.length, largeCount: data.length };
+      }
+      return {
+        images: data.images ?? [],
+        totalCount: data.totalCount ?? (data.images?.length ?? 0),
+        largeCount: data.largeCount ?? (data.images?.length ?? 0)
+      };
     }
   
     // Sinon, on demande au content script
@@ -25,11 +34,15 @@ export async function getImages() {
               if (chrome.runtime.lastError) {
                 return reject(chrome.runtime.lastError);
               }
-              resolve(response.images || []);
+              // Return images along with counts
+              resolve({ 
+                images: response.images || [], 
+                totalCount: response.totalCount || 0, 
+                largeCount: response.largeCount || 0 
+              });
             }
           );
         }
       );
     });
   }
-  

@@ -8,9 +8,6 @@ function collectImgTagUrls() {
   const urls = Array.from(document.images)
     .map(img => img.currentSrc || img.src)
     .filter(Boolean);
-  // Affiche le tableau complet pour debug pédagogique
-  console.log('[contentScript] collectImgTagUrls tableau:', urls);
-  console.log(`[contentScript] collectImgTagUrls: ${urls.length} URLs`);
   return urls;
 }
 
@@ -27,9 +24,6 @@ function collectCssBackgroundUrls() {
     })
     .filter(Boolean);
   const unique = Array.from(new Set(urls));
-  // Affiche le tableau complet pour debug pédagogique
-  console.log('[contentScript] collectCssBackgroundUrls tableau:', unique);
-  console.log(`[contentScript] collectCssBackgroundUrls: ${unique.length} URLs`);
   return unique;
 }
 
@@ -42,51 +36,22 @@ function collectAttrUrls() {
     .map(el => el.getAttribute('backgroundimage'))
     .filter(Boolean);
   const unique = Array.from(new Set(urls));
-  // Affiche le tableau complet pour debug pédagogique
-  console.log('[contentScript] collectAttrUrls tableau:', unique);
-  console.log(`[contentScript] collectAttrUrls: ${unique.length} URLs`);
   return unique;
 }
 
 /**
- * Filtre les images dont la hauteur naturelle dépasse le seuil.
- * @param {string[]} urls
- * @param {number} threshold
- * @returns {Promise<string[]>}
+ * Récupère toutes les URLs des images (balises, background CSS, attribut).
+ * @returns {string[]}
  */
-function filterLargeImages(urls, threshold = 500) {
-  console.log(`[contentScript] filterLargeImages: testing ${urls.length} URLs`);
-  const promises = urls.map(url => new Promise(resolve => {
-    const img = new Image();
-    img.src = url;
-    img.onload = () => resolve({ url, height: img.naturalHeight });
-    img.onerror = () => resolve(null);
-  }));
-  return Promise.all(promises).then(results => {
-    // Garde les items valides au-dessus du seuil de hauteur
-    const filteredItems = results.filter(item => item && item.height > threshold);
-    // Tri décroissant sur naturalHeight
-    filteredItems.sort((a, b) => b.height - a.height);
-    // Extrait les URLs triées
-    const filtered = filteredItems.map(item => item.url);
-    console.log(`[contentScript] filterLargeImages: ${filtered.length} URLs > ${threshold}px triées par hauteur`);
-    return filtered;
-  });
-}
-
-/**
- * Agrège toutes les URLs, dedupe, et filtre par hauteur.
- * @param {number} threshold
- * @returns {Promise<string[]>}
- */
-function collectAllImages(threshold = 500) {
+function collectAllUrls() {
   const imgUrls = collectImgTagUrls();
   const cssUrls = collectCssBackgroundUrls();
   const attrUrls = collectAttrUrls();
-  const all = Array.from(new Set([...imgUrls, ...cssUrls, ...attrUrls]));
-  console.log(`[contentScript] collectAllImages: total unique URLs = ${all.length}`);
-  return filterLargeImages(all, threshold);
+  const allUrls = Array.from(new Set([...imgUrls, ...cssUrls, ...attrUrls]));
+  console.log(`[contentScript] liste url d'image de la page:`, allUrls);
+  return allUrls;
 }
+
 
 /**
  * Fonction utilitaire pour détecter le format via signature binaire.
@@ -153,25 +118,48 @@ function getImageWeight(url) {
 }
 
 /**
+ * Filtre les URLs selon la hauteur et enrichit avec format et poids.
+ * @param {string[]} urls
+ * @param {number} threshold
+ * @returns {Promise<{url:string,format:string,weight:number|null}[]>}
+ */
+async function filterAndEnrichImages(urls, threshold = 500) {
+  const measures = await Promise.all(urls.map(url =>
+    new Promise(resolve => {
+      const img = new Image(); img.src = url;
+      img.onload = () => resolve({ url, height: img.naturalHeight });
+      img.onerror = () => resolve(null);
+    })
+  ));
+  const filtered = measures
+    .filter(item => item && item.height > threshold)
+    .sort((a, b) => b.height - a.height)
+    .map(item => item.url);
+  const enriched = await Promise.all(filtered.map(async url => {
+    const format = await getRealFormat(url);
+    const weightBytes = await getImageWeight(url);
+    const weight = weightBytes != null ? Math.round((weightBytes/1024)*100)/100 : null;
+    return { url, format, weight };
+  }));
+  console.log(`[contentScript] Liste d'url de plus de 500px avec metadonnée:`, enriched);
+  return enriched;
+}
+
+/**
  * Listener pour messages Chrome, répond de manière asynchrone.
  */
 function registerChromeMessageListener() {
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    console.log(`[contentScript] onMessage received:`, msg);
     if (msg.type === 'SCRAPE_IMAGES') {
-      const threshold = msg.threshold || 500;
-      collectAllImages(threshold).then(images => {
-        console.log(`[contentScript] Retrieved ${images.length} images, enriching with format and weight`);
-        Promise.all(images.map(async url => {
-          const format = await getRealFormat(url);
-          const weightBytes = await getImageWeight(url);
-          const weight = weightBytes !== null ? Math.round((weightBytes / 1024) * 100) / 100 : null; // ko arrondi à 2 déc.
-          return { url, format, weight };
-        })).then(imagesWithFormat => {
-          console.log(`[contentScript] Sending ${imagesWithFormat.length} images with format & weight`, imagesWithFormat);
-          sendResponse({ images: imagesWithFormat });
+      const allUrls = collectAllUrls();
+      const totalCount = allUrls.length;
+      filterAndEnrichImages(allUrls, msg.threshold || 500)
+        .then(imagesWithFormat => {
+          const largeCount = imagesWithFormat.length;
+          const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
+          console.log(`[contentScript] Données envoyées à React:`, responsePayload);
+          sendResponse(responsePayload);
         });
-      });
       return true;
     }
   });
