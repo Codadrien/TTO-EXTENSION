@@ -32,4 +32,22 @@ export async function getImages() {
       );
     });
   }
-  
+
+/**
+ * Stream images from content script dynamically.
+ * @param {function} onData Callback for each image data {url, format, weight}.
+ * @param {function} onDone Callback when streaming is complete.
+ * @param {number} threshold Height threshold.
+ */
+export function streamImages(onData, onDone, threshold = 500) {
+  const port = chrome.runtime.connect({ name: 'SCRAPE_IMAGES' });
+  port.postMessage({ type: 'START', threshold });
+  port.onMessage.addListener(msg => {
+    if (msg.done) {
+      onDone();
+      port.disconnect();
+    } else {
+      onData(msg);
+    }
+  });
+}

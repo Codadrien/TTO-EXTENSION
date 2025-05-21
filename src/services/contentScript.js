@@ -177,5 +177,27 @@ function registerChromeMessageListener() {
   });
 }
 
+// Long-lived connection pour streaming dynamique des images
+chrome.runtime.onConnect.addListener(port => {
+  if (port.name === 'SCRAPE_IMAGES') {
+    port.onMessage.addListener(msg => {
+      if (msg.type === 'START') {
+        const threshold = msg.threshold || 500;
+        // On collecte les URLs puis envoie chaque image dès qu'elle est prête
+        collectAllImages(threshold).then(async urls => {
+          for (const url of urls) {
+            const format = await getRealFormat(url);
+            const weightBytes = await getImageWeight(url);
+            const weight = weightBytes !== null ? Math.round((weightBytes / 1024) * 100) / 100 : null;
+            port.postMessage({ url, format, weight });
+          }
+          // Indique la fin du streaming
+          port.postMessage({ done: true });
+        });
+      }
+    });
+  }
+});
+
 // Initialisation du listener
 registerChromeMessageListener();
