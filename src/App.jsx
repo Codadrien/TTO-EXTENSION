@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'; // On importe useEffect ET useState
 import './index.css'; // On importe le CSS principal
-import { streamImages } from './services/apiService';
+import { getImages } from './services/apiService';
 
 function App() {
   // State pour stocker la liste des URLs d'images
@@ -10,13 +10,9 @@ function App() {
   const [imageInfos, setImageInfos] = useState({});
 
   useEffect(() => {
-    setImages([]); // réinitialise la liste
-    setImageInfos({}); // réinitialise les infos
-    streamImages(
-      msg => setImages(prev => [...prev, msg]),
-      () => console.log('Streaming terminé'),
-      500 // seuil de hauteur en pixels
-    );
+    getImages()
+      .then(data => setImages(data))
+      .catch(error => console.error('Erreur getImages:', error));
   }, []);
 
   // Pour chaque image, charger dynamiquement les dimensions (largeur/hauteur)
