@@ -42,7 +42,7 @@ function App() {
   }, [images]);
 
   return (
-    <div id="custom-side-panel" className="custom-side-panel visible">
+    <div id="custom-side-panel-bis" className="custom-side-panel-bis visible">
       {/* Header du panneau */}
       <div id="header-tto" className="header-tto">
         Extension Photo TTO

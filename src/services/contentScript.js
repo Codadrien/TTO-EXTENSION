@@ -165,5 +165,5 @@ function registerChromeMessageListener() {
   });
 }
 
-// Initialisation du listener
+// Initialisation
 registerChromeMessageListener();

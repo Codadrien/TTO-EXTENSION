@@ -1,6 +1,10 @@
 /* Style principal du panneau */
 .custom-side-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
     width: 500px;
+    height: 62vh;
     background: #fff;
     box-shadow: -4px 0 16px rgba(0,0,0,0.15);
     z-index: 999999;
@@ -13,6 +17,10 @@
     transform: translateX(100%);
     transition: transform 0.6s cubic-bezier(.5,1.6,.4,1);
     background-color: #e8e8e8;
+}
+
+.custom-side-panel-bis {
+    padding: 10px 17px;
 }
 
 .image-grid {
