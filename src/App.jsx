@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'; 
-import './index.css'; 
+import React, { useEffect, useState } from 'react'; // On importe useEffect ET useState
+import './index.css'; // On importe le CSS principal
 import { getImages } from './services/apiService';
 
 function App() {
@@ -40,25 +40,6 @@ function App() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images]);
-
-  // Écoute postMessage pour ajouter seulement les nouvelles images
-  useEffect(() => {
-    const handler = event => {
-      if (event.data?.type === 'IMAGES_UPDATE') {
-        const updated = event.data.images;
-        setImages(prev => {
-          const existing = new Set(prev.map(i => i.url));
-          const newItems = updated.filter(img => !existing.has(img.url));
-          if (!newItems.length) return prev;
-          setTotalCount(count => count + newItems.length);
-          setLargeCount(count => count + newItems.length);
-          return [...prev, ...newItems];
-        });
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
 
   return (
     <div id="custom-side-panel-bis" className="custom-side-panel-bis visible">

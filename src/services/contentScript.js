@@ -158,41 +158,12 @@ function registerChromeMessageListener() {
           const largeCount = imagesWithFormat.length;
           const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
           console.log(`[contentScript] Données envoyées à React:`, responsePayload);
-          // Envoi un message à l’iframe pour ajouter les nouvelles images
-          const iframe = document.getElementById('custom-side-panel');
-          if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.postMessage({ type: 'IMAGES_UPDATE', images: responsePayload.images }, '*');
-          }
           sendResponse(responsePayload);
         });
       return true;
     }
   });
 }
-
-// Suivi des URLs déjà envoyées
-let lastEnrichedUrls = [];
-let debounceTimer;
-// Observer la page pour détecter ajouts/modifications d'images
-const pageObserver = new MutationObserver(mutations => {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(async () => {
-    const allUrls = collectAllUrls();
-    const enriched = await filterAndEnrichImages(allUrls);
-    const newItems = enriched.filter(item => !lastEnrichedUrls.includes(item.url));
-    if (newItems.length > 0) {
-      const iframe = document.getElementById('custom-side-panel');
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ type: 'IMAGES_UPDATE', images: newItems }, '*');
-        // Forcer reload de l'iframe
-        iframe.src = chrome.runtime.getURL('index.html') + '?t=' + Date.now();
-      }
-      lastEnrichedUrls = enriched.map(i => i.url);
-    }
-  }, 500);
-});
-// Lancer l'observation sur tout le body
-pageObserver.observe(document.body, { childList: true, subtree: true, attributes: true });
 
 // Initialisation
 registerChromeMessageListener();
