@@ -149,6 +149,7 @@ async function filterAndEnrichImages(urls, threshold = 500) {
  * Listener pour messages Chrome, répond de manière asynchrone.
  */
 function registerChromeMessageListener() {
+  // Toujours garder le listener Chrome pour la compatibilité
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'SCRAPE_IMAGES') {
       const allUrls = collectAllUrls();
@@ -162,6 +163,28 @@ function registerChromeMessageListener() {
         });
       return true;
     }
+  });
+  
+  // Ajouter des écouteurs pour les événements personnalisés
+  document.addEventListener('TTO_PANEL_OPENED', () => {
+    console.log('[contentScript] Panneau ouvert, traitement des images...');
+    // Traitement direct des images
+    const allUrls = collectAllUrls();
+    const totalCount = allUrls.length;
+    filterAndEnrichImages(allUrls, 500)
+      .then(imagesWithFormat => {
+        const largeCount = imagesWithFormat.length;
+        const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
+        console.log(`[contentScript] Données prêtes via événement:`, responsePayload);
+        
+        // Créer un événement personnalisé avec les données
+        const event = new CustomEvent('TTO_IMAGES_DATA', { 
+          detail: responsePayload 
+        });
+        
+        // Envoyer les données à l'application React
+        document.dispatchEvent(event);
+      });
   });
 }
 

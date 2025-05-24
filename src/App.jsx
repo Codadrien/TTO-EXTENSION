@@ -41,6 +41,11 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images]);
 
+  // Informer le script de contenu que l'UI React est prête
+  useEffect(() => {
+    document.dispatchEvent(new CustomEvent('TTO_PANEL_OPENED'));
+  }, []);
+
   return (
     <div id="custom-side-panel" className="custom-side-panel visible">
       {/* Header du panneau */}
