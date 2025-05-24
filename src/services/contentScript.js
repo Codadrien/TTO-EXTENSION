@@ -188,5 +188,37 @@ function registerChromeMessageListener() {
   });
 }
 
+/**
+ * Analyse les images de la page et envoie les résultats à l'UI React
+ */
+function updateImagesData() {
+  // Vérifier si le panneau est visible
+  if (!document.getElementById('tto-extension-container')) return;
+  
+  console.log('[contentScript] Mise à jour des données d\'images...');
+  const allUrls = collectAllUrls();
+  const totalCount = allUrls.length;
+  
+  filterAndEnrichImages(allUrls, 500).then(imagesWithFormat => {
+    const largeCount = imagesWithFormat.length;
+    const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
+    
+    // Envoyer les données à l'application React via un événement personnalisé
+    document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { 
+      detail: responsePayload 
+    }));
+  });
+}
+
+// Ajouter un écouteur pour les clics sur la page
+let debounceTimer = null;
+document.addEventListener('click', () => {
+  // Utiliser un debounce pour éviter trop d'appels rapprochés
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    updateImagesData();
+  }, 300); // Attendre 300ms après le dernier clic
+}, { passive: true });
+
 // Initialisation du listener
 registerChromeMessageListener();

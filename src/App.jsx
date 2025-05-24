@@ -41,9 +41,27 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images]);
 
-  // Informer le script de contenu que l'UI React est prête
+  // Écouter les mises à jour d'images et informer le script de contenu que l'UI React est prête
   useEffect(() => {
+    // Informer le script de contenu que l'UI React est prête
     document.dispatchEvent(new CustomEvent('TTO_PANEL_OPENED'));
+    
+    // Fonction pour mettre à jour les données d'images
+    const handleImagesUpdate = (event) => {
+      console.log('[React] Reçu mise à jour des images:', event.detail);
+      const { images: imgs, totalCount: total, largeCount: large } = event.detail;
+      setImages(imgs);
+      setTotalCount(total);
+      setLargeCount(large);
+    };
+    
+    // Ajouter l'écouteur d'événement
+    document.addEventListener('TTO_IMAGES_DATA', handleImagesUpdate);
+    
+    // Nettoyer l'écouteur lors du démontage
+    return () => {
+      document.removeEventListener('TTO_IMAGES_DATA', handleImagesUpdate);
+    };
   }, []);
 
   return (
