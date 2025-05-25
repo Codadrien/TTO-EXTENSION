@@ -15,6 +15,13 @@ export default defineConfig({
         entryFileNames: assetInfo => {
           if (assetInfo.name === 'content') return 'contentScript.js';
           return '[name].js';
+        },
+        // Génère un CSS sans hash pour charger un nom fixe index.css
+        assetFileNames: assetInfo => {
+          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
+            return 'assets/index.css';
+          }
+          return 'assets/[name]-[hash][extname]';
         }
       }
     },
