@@ -20,7 +20,10 @@ function App() {
   // State pour le nom du dossier de téléchargement
   const [folderName, setFolderName] = useState('');
 
-  // Fonction pour gérer le clic sur une image et injecter une classe
+  // State pour les images qui nécessitent un traitement spécial (remove bg)
+  const [processImages, setProcessImages] = useState([]);
+
+  // Fonction pour gérer le clic sur une image (sélection standard)
   const handleImageClick = (idx) => {
     setSelectedOrder(prev => {
       const newOrder = { ...prev };
@@ -43,14 +46,35 @@ function App() {
 
   // Fonction pour télécharger les images sélectionnées
   const handleDownload = () => {
+    // Préparer les images avec leur ordre et marquer celles qui nécessitent un traitement
     const urlsWithNumber = Object.entries(selectedOrder)
       .sort((a, b) => a[1] - b[1])
       .map(([idx, order]) => ({
         url: images[idx].url,
         order,
+        needsProcessing: processImages.includes(Number(idx))
       }));
-    console.log('Images envoyées avec ordre:', urlsWithNumber);
+    
+    console.log('Images envoyées avec ordre et statut de traitement:', urlsWithNumber);
+    
+    // TODO: Traiter les images marquées avant téléchargement
+    // Pour l'instant, on télécharge toutes les images sans traitement
     DownloadManager.downloadImages(urlsWithNumber, folderName);
+  };
+
+  // Fonction pour gérer le clic sur le bouton vert (traitement spécial)
+  const handleProcessClick = (idx) => {
+    // D'abord sélectionner l'image normalement (pour l'ordre)
+    handleImageClick(idx);
+    
+    // Ensuite marquer pour traitement spécial
+    setProcessImages(prev => {
+      if (prev.includes(idx)) {
+        return prev.filter(i => i !== idx);
+      } else {
+        return [...prev, idx];
+      }
+    });
   };
 
   useEffect(() => {
@@ -119,9 +143,11 @@ function App() {
         <div id="imageContainer" className="image-grid">
           {images.map(({url, format, weight}, idx) => (
             <div className="image-card" key={idx}>
+              {/* Bouton vert déclenchant la sélection d'image */}
+              <button className="process-button" onClick={() => handleProcessClick(idx)}></button>
               {/* L'image */}
               <img
-                className={`image-item ${selectedOrder[idx] ? 'selected-image' : ''}`}
+                className={`image-item ${selectedOrder[idx] ? 'selected-image' : ''} ${processImages.includes(idx) ? 'selected-process' : ''}`}
                 src={url}
                 alt={`Image ${idx + 1}`}
                 onClick={() => handleImageClick(idx)}

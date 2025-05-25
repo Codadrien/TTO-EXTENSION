@@ -160,3 +160,28 @@
     font-size: 20px;
     font-family: rubik;
 }
+
+/* Style pour bouton de traitement */
+.process-button {
+    position: absolute;
+    bottom: 7px;
+    right: 10px;
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: #1d9337;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Outline vert pour les images marquées pour traitement */
+.selected-process {
+    outline: 4px solid #28a745;
+}
