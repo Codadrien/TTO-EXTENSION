@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'; // On importe useEffect ET useState
 import './index.css'; // On importe le CSS principal
 import { getImages } from './services/apiService';
+import DownloadManager from './services/imagesDownloderManager';
 
 function App() {
   // State pour stocker la liste des URLs d'images
@@ -15,6 +16,9 @@ function App() {
 
   // State pour images sélectionnées (plusieurs)
   const [selectedImages, setSelectedImages] = useState([]);
+  
+  // State pour le nom du dossier de téléchargement
+  const [folderName, setFolderName] = useState('images');
 
   // Fonction pour gérer le clic sur une image et injecter une classe
   const handleImageClick = (idx) => {
@@ -23,12 +27,15 @@ function App() {
     );
   };
 
-  // Fonction pour télécharger les images sélectionnées (console log pour l'instant)
+  // Fonction pour télécharger les images sélectionnées
   const handleDownload = () => {
     const urls = images
       .filter((_, idx) => selectedImages.includes(idx))
       .map(img => img.url);
     console.log('Images envoyées:', urls);
+    
+    // Utiliser DownloadManager pour télécharger les images avec le nom de dossier spécifié
+    DownloadManager.downloadImages(urls, folderName);
   };
 
   useEffect(() => {
@@ -125,6 +132,13 @@ function App() {
       </div>
       {/* Barre fixe en bas, hors du panel */}
       <div className="footer-bar">
+        <input 
+          type="text" 
+          value={folderName} 
+          onChange={(e) => setFolderName(e.target.value)} 
+          placeholder="Nom du dossier" 
+          className="folder-name-input" 
+        />
         <button onClick={handleDownload}>Télécharger les images</button>
       </div>
     </>

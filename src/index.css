@@ -110,6 +110,11 @@
     text-align: right;
     box-shadow: 0 -2px 5px #0000001a;
     z-index: 2;
+    padding: 10px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
 }
 
 .footer-bar button {
@@ -122,4 +127,14 @@
 }
 .footer-bar button:hover {
     background-color: #052913;
+}
+
+/* Style pour l'input du nom de dossier */
+.folder-name-input {
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 200px;
+    font-family: rubik;
 }

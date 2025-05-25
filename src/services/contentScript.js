@@ -186,6 +186,38 @@ function registerChromeMessageListener() {
         document.dispatchEvent(event);
       });
   });
+  
+  // Écouteur pour les événements de téléchargement
+  document.addEventListener('TTO_DOWNLOAD_IMAGES', (event) => {
+    console.log('[contentScript] Événement de téléchargement reçu:', event.detail);
+    
+    // Vérifier que les données sont valides
+    if (!event.detail || !event.detail.url || !event.detail.filename) {
+      console.error('[contentScript] Données de téléchargement invalides:', event.detail);
+      return;
+    }
+    
+    // Transmettre la demande de téléchargement au background script
+    try {
+      console.log('[contentScript] Envoi du message de téléchargement au background script');
+      console.log('[contentScript] URL:', event.detail.url);
+      console.log('[contentScript] Chemin de destination:', event.detail.filename);
+      
+      chrome.runtime.sendMessage({
+        type: 'download',
+        url: event.detail.url,
+        filename: event.detail.filename
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[contentScript] Erreur lors de l\'envoi du message:', chrome.runtime.lastError);
+        } else {
+          console.log('[contentScript] Réponse du background script:', response);
+        }
+      });
+    } catch (error) {
+      console.error('[contentScript] Exception lors de l\'envoi du message:', error);
+    }
+  });
 }
 
 /**

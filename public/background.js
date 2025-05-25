@@ -106,3 +106,32 @@ chrome.action.onClicked.addListener((tab) => {
   console.log('[background] icon clicked, tab:', tab.id);
   chrome.scripting.executeScript({ target: { tabId: tab.id }, func: toggleTTO });
 });
+
+// Listener pour les messages de téléchargement
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'download') {
+    console.log('[background] Téléchargement demandé pour:', message.url);
+    console.log('[background] Chemin de destination:', message.filename);
+    
+    try {
+      chrome.downloads.download({
+        url: message.url,
+        filename: message.filename,
+        saveAs: false
+      }, (downloadId) => {
+        if (chrome.runtime.lastError) {
+          console.error('[background] Erreur de téléchargement:', chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          console.log('[background] Téléchargement démarré, ID:', downloadId);
+          sendResponse({ success: true, downloadId: downloadId });
+        }
+      });
+    } catch (error) {
+      console.error('[background] Exception lors du téléchargement:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+    
+    return true; // Indique que sendResponse sera appelé de manière asynchrone
+  }
+});
