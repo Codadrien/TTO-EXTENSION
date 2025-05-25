@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'; // On importe useEffect ET u
 import './index.css'; // On importe le CSS principal
 import { getImages } from './services/apiService';
 import DownloadManager from './services/imagesDownloderManager';
+// Import JSZip directement dans le bundle
+import JSZip from 'jszip';
 
 function App() {
   // State pour stocker la liste des URLs d'images
@@ -22,6 +24,84 @@ function App() {
 
   // State pour les images qui nécessitent un traitement spécial (remove bg)
   const [processImages, setProcessImages] = useState([]);
+  
+  // State pour le mode d'interception ZIP
+  const [zipInterceptEnabled, setZipInterceptEnabled] = useState(false);
+  
+  // Vérifier l'état du mode d'interception ZIP au chargement
+  useEffect(() => {
+    // Vérifier si chrome.runtime est disponible
+    if (window.chrome && window.chrome.runtime) {
+      window.chrome.runtime.sendMessage({ type: 'getZipInterceptStatus' }, (response) => {
+        if (response && response.enabled !== undefined) {
+          setZipInterceptEnabled(response.enabled);
+        }
+      });
+    } else {
+      console.warn("L'API chrome.runtime n'est pas disponible dans ce contexte");
+    }
+  }, []);
+
+  // Toggle le mode d'interception ZIP
+  const toggleZipIntercept = () => {
+    // Vérifier si chrome.runtime est disponible
+    if (window.chrome && window.chrome.runtime) {
+      const newState = !zipInterceptEnabled;
+      window.chrome.runtime.sendMessage({ 
+        type: 'toggleZipIntercept', 
+        enabled: newState 
+      }, (response) => {
+        if (response && response.success) {
+          setZipInterceptEnabled(newState);
+        }
+      });
+    } else {
+      // Fallback pour le développement
+      console.warn("L'API chrome.runtime n'est pas disponible, toggle simulé");
+      setZipInterceptEnabled(!zipInterceptEnabled);
+    }
+  };
+
+  // Handler pour import ZIP
+  const handleZipUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      // JSZip est maintenant importé directement dans le bundle
+      
+      const zip = await JSZip.loadAsync(file);
+      const imgs = [];
+      await Promise.all(Object.values(zip.files)
+        .filter(f => /\.(jpe?g|png|gif)$/i.test(f.name) && !f.dir)
+        .map(async f => {
+          const blob = await f.async('blob');
+          const url = URL.createObjectURL(blob);
+          imgs.push({ 
+            url, 
+            format: f.name.split('.').pop().toLowerCase(), 
+            weight: Math.round(blob.size / 1024) 
+          });
+        })
+      );
+      
+      if (imgs.length === 0) {
+        alert("Aucune image trouvée dans le ZIP");
+        return;
+      }
+      
+      setImages(imgs);
+      setTotalCount(imgs.length);
+      setLargeCount(imgs.length);
+      // reset selections
+      setSelectedOrder({});
+      setProcessImages([]);
+      
+      console.log(`${imgs.length} images extraites du ZIP et affichées`);
+    } catch (err) {
+      console.error('Erreur ZIP:', err);
+      alert(`Erreur lors de l'extraction du ZIP: ${err.message}`);
+    }
+  };
 
   // Fonction pour gérer le clic sur une image (sélection standard)
   const handleImageClick = (idx) => {
@@ -177,12 +257,23 @@ function App() {
       {/* Barre fixe en bas, hors du panel */}
       <div className="footer-bar">
         <div className="footer-bar-input-wrapper">
+          <div className="zip-controls">
+            <input type="file" accept=".zip" onChange={handleZipUpload} className="zip-input" />
+            <label className="zip-intercept-toggle">
+              <input 
+                type="checkbox" 
+                checked={zipInterceptEnabled} 
+                onChange={toggleZipIntercept} 
+              />
+              <span className="toggle-label">Auto-intercepter ZIP</span>
+            </label>
+          </div>
           <input 
             type="text" 
             value={folderName} 
-            onChange={(e) => setFolderName(e.target.value)} 
-            placeholder="Barcode" 
-            className="folder-name-input" 
+            onChange={(e) => setFolderName(e.target.value)}
+            placeholder="Nom du dossier (barcode)"
+            className="folder-name-input"
           />
         </div>
         <div className="footer-bar-button-wrapper">

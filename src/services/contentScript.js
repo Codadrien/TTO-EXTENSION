@@ -188,32 +188,153 @@ function registerChromeMessageListener() {
   });
   
   // Écouteur pour les événements de téléchargement
-  document.addEventListener('TTO_DOWNLOAD_IMAGES', (event) => {
-    console.log('[contentScript] Événement de téléchargement reçu:', event.detail);
-    
-    // Vérifier que les données sont valides
-    if (!event.detail || !event.detail.url || !event.detail.filename) {
-      console.error('[contentScript] Données de téléchargement invalides:', event.detail);
-      return;
+  listenForDownloadEvents();
+  
+  // Écouter les messages du background script pour le traitement ZIP
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // Traiter les images extraites du ZIP envoyées par le background script
+    if (message.type === 'zipImagesExtracted') {
+      console.log('[contentScript] Images extraites du ZIP reçues:', message.images.length);
+      
+      try {
+        // Créer les objets URL pour les images
+        const imgs = message.images.map(img => ({
+          url: URL.createObjectURL(new Blob([new Uint8Array(img.data)], { type: img.type })),
+          format: img.format,
+          weight: img.size
+        }));
+        
+        // Envoyer les données à l'application React
+        const responsePayload = { 
+          images: imgs, 
+          totalCount: imgs.length, 
+          largeCount: imgs.length,
+          source: 'zip',
+          zipFilename: message.originalFilename
+        };
+        
+        console.log('[contentScript] Préparation des données pour l\'interface:', responsePayload);
+        
+        // Si le panneau est ouvert, envoyer directement les données
+        if (document.getElementById('tto-extension-container')) {
+          console.log('[contentScript] Panneau déjà ouvert, envoi direct des données');
+          document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { 
+            detail: responsePayload 
+          }));
+        } else {
+          // Sinon, ouvrir le panneau puis envoyer les données
+          console.log('[contentScript] Ouverture du panneau avant envoi des données');
+          chrome.runtime.sendMessage({ type: 'openPanel' }, () => {
+            setTimeout(() => {
+              document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { 
+                detail: responsePayload 
+              }));
+              console.log('[contentScript] Données envoyées à l\'interface après ouverture du panneau');
+            }, 500);
+          });
+        }
+        
+        // Répondre au background script pour confirmer la réception
+        sendResponse({ success: true, message: 'Images ZIP reçues et traitées' });
+      } catch (err) {
+        console.error('[contentScript] Erreur lors du traitement des images ZIP:', err);
+        sendResponse({ success: false, error: err.message });
+      }
+      
+      return true;
     }
     
-    // Transmettre la demande de téléchargement au background script
+    // Pour compatibilité avec l'ancien système (au cas où)
+    if (message.type === 'processZipData') {
+      console.log('[contentScript] Demande de traitement ZIP reçue (ancien format), redirection vers le background');
+      sendResponse({ success: true, message: 'Redirection vers le background script' });
+      return true;
+    }
+  });
+}
+
+// Fonction pour écouter les événements de téléchargement d'images
+function listenForDownloadEvents() {
+  document.addEventListener('TTO_DOWNLOAD_IMAGES', (event) => {
     try {
-      console.log('[contentScript] Envoi du message de téléchargement au background script');
-      console.log('[contentScript] URL:', event.detail.url);
-      console.log('[contentScript] Chemin de destination:', event.detail.filename);
+      console.log('[contentScript] Événement de téléchargement reçu:', event.detail);
       
-      chrome.runtime.sendMessage({
-        type: 'download',
-        url: event.detail.url,
-        filename: event.detail.filename
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('[contentScript] Erreur lors de l\'envoi du message:', chrome.runtime.lastError);
-        } else {
-          console.log('[contentScript] Réponse du background script:', response);
-        }
-      });
+      // Vérifier si l'URL est valide
+      if (!event.detail.url) {
+        console.error('[contentScript] URL manquante dans l\'event de téléchargement');
+        alert('URL manquante pour le téléchargement');
+        return;
+      }
+      
+      // Extraire le barcode du chemin de fichier
+      // Format attendu: date/barcode/filename
+      const pathParts = event.detail.filename.split('/');
+      const barcode = pathParts.length >= 2 ? pathParts[1] : null;
+      
+      console.log('[contentScript] Barcode extrait:', barcode);
+      
+      if (!barcode) {
+        console.error('[contentScript] Barcode manquant dans le chemin de fichier');
+        alert('Barcode manquant. Veuillez saisir un barcode dans le champ prévu à cet effet.');
+        return;
+      }
+      
+      // Vérifier si l'URL est une URL d'objet (blob:)
+      if (event.detail.url.startsWith('blob:')) {
+        console.log('[contentScript] Détection d\'une URL blob, conversion en données binaires...');
+        
+        // Récupérer les données binaires de l'URL blob
+        fetch(event.detail.url)
+          .then(response => response.blob())
+          .then(blob => {
+            // Extraire le nom de fichier original
+            const filename = event.detail.filename.split('/').pop() || 'image.jpg';
+            
+            // Créer un nouvel objet File avec le bon type MIME
+            const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+            
+            // Créer une URL pour le fichier
+            const fileUrl = URL.createObjectURL(file);
+            
+            // Envoyer la demande de téléchargement au background script
+            chrome.runtime.sendMessage({
+              type: 'download',
+              url: fileUrl,
+              filename: event.detail.filename,
+              barcode: barcode
+            }, (response) => {
+              if (chrome.runtime.lastError) {
+                console.error('[contentScript] Erreur lors de l\'envoi du message:', chrome.runtime.lastError);
+              } else {
+                console.log('[contentScript] Réponse du background script:', response);
+                // Libérer l'URL de l'objet après un court délai
+                setTimeout(() => URL.revokeObjectURL(fileUrl), 5000);
+              }
+            });
+          })
+          .catch(error => {
+            console.error('[contentScript] Erreur lors de la conversion de l\'URL blob:', error);
+            alert('Erreur lors de la préparation de l\'image pour le téléchargement');
+          });
+      } else {
+        // URL normale, envoyer directement au background script
+        console.log('[contentScript] Envoi du message de téléchargement au background script');
+        console.log('[contentScript] URL:', event.detail.url);
+        console.log('[contentScript] Chemin de destination:', event.detail.filename);
+        
+        chrome.runtime.sendMessage({
+          type: 'download',
+          url: event.detail.url,
+          filename: event.detail.filename,
+          barcode: barcode
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('[contentScript] Erreur lors de l\'envoi du message:', chrome.runtime.lastError);
+          } else {
+            console.log('[contentScript] Réponse du background script:', response);
+          }
+        });
+      }
     } catch (error) {
       console.error('[contentScript] Exception lors de l\'envoi du message:', error);
     }
@@ -251,6 +372,145 @@ document.addEventListener('click', () => {
     updateImagesData();
   }, 300); // Attendre 300ms après le dernier clic
 }, { passive: true });
+
+/**
+ * Fonction pour traiter les données ZIP
+ * @param {ArrayBuffer} zipData 
+ * @param {string} originalFilename
+ */
+function processZipData(zipData, originalFilename) {
+  console.log('[contentScript] Traitement du ZIP...');
+  
+  // Cette fonction est dépréciée, le traitement ZIP est maintenant fait dans le background script
+  console.log('[contentScript] Cette fonction est dépréciée, le traitement ZIP est maintenant fait dans le background script');
+  // Si JSZip est déjà disponible
+  const JSZipLib = typeof JSZip !== 'undefined' ? JSZip : window.JSZip;
+  processWithJSZip(JSZipLib);
+  
+  // Fonction interne pour traiter avec JSZip
+  function processWithJSZip(zipLib) {
+    zipLib.loadAsync(zipData)
+      .then(zip => {
+        console.log('[contentScript] ZIP chargé, extraction des images...');
+        const imgs = [];
+        const promises = [];
+        
+        // Extraire toutes les images du ZIP
+        Object.values(zip.files).forEach(zipEntry => {
+          if (!zipEntry.dir && /\.(jpe?g|png|gif)$/i.test(zipEntry.name)) {
+            const promise = zipEntry.async('blob').then(blob => {
+              const url = URL.createObjectURL(blob);
+              imgs.push({ url, format: zipEntry.name.split('.').pop().toLowerCase(), weight: Math.round(blob.size / 1024) });
+            });
+            promises.push(promise);
+          }
+        });
+        
+        // Quand toutes les images sont extraites
+        return Promise.all(promises).then(() => {
+          if (imgs.length > 0) {
+            console.log(`[contentScript] ${imgs.length} images extraites du ZIP`);
+            
+            // Envoyer les données à l'application React
+            const responsePayload = { 
+              images: imgs, 
+              totalCount: imgs.length, 
+              largeCount: imgs.length,
+              source: 'zip',
+              zipFilename: originalFilename
+            };
+            
+            // Si le panneau est ouvert, envoyer directement les données
+            if (document.getElementById('tto-extension-container')) {
+              document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { 
+                detail: responsePayload 
+              }));
+            } else {
+              // Sinon, ouvrir le panneau puis envoyer les données
+              if (window.chrome && window.chrome.runtime) {
+                window.chrome.runtime.sendMessage({ type: 'openPanel' }, () => {
+                  setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { 
+                      detail: responsePayload 
+                    }));
+                  }, 500); // Délai pour laisser le temps au panneau de s'ouvrir
+                });
+              } else {
+                console.error('[contentScript] chrome.runtime n\'est pas disponible');
+              }
+            }
+          } else {
+            console.log('[contentScript] Aucune image trouvée dans le ZIP');
+          }
+        });
+      })
+      .catch(err => {
+        console.error('[contentScript] Erreur lors du traitement du ZIP:', err);
+      });
+  }
+}
+
+// Écouter les messages du background script pour le traitement ZIP
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Traiter les images extraites du ZIP envoyées par le background script
+  if (message.type === 'zipImagesExtracted') {
+    console.log('[contentScript] Images extraites du ZIP reçues:', message.images.length);
+    
+    try {
+      // Créer les objets URL pour les images
+      const imgs = message.images.map(img => ({
+        url: URL.createObjectURL(new Blob([new Uint8Array(img.data)], { type: img.type })),
+        format: img.format,
+        weight: img.size
+      }));
+      
+      // Envoyer les données à l'application React
+      const responsePayload = { 
+        images: imgs, 
+        totalCount: imgs.length, 
+        largeCount: imgs.length,
+        source: 'zip',
+        zipFilename: message.originalFilename
+      };
+      
+      console.log('[contentScript] Préparation des données pour l\'interface:', responsePayload);
+      
+      // Si le panneau est ouvert, envoyer directement les données
+      if (document.getElementById('tto-extension-container')) {
+        console.log('[contentScript] Panneau déjà ouvert, envoi direct des données');
+        document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { 
+          detail: responsePayload 
+        }));
+      } else {
+        // Sinon, ouvrir le panneau puis envoyer les données
+        console.log('[contentScript] Ouverture du panneau avant envoi des données');
+        chrome.runtime.sendMessage({ type: 'openPanel' }, () => {
+          setTimeout(() => {
+            document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { 
+              detail: responsePayload 
+            }));
+            console.log('[contentScript] Données envoyées à l\'interface après ouverture du panneau');
+          }, 500);
+        });
+      }
+      
+      // Répondre au background script pour confirmer la réception
+      sendResponse({ success: true, message: 'Images ZIP reçues et traitées' });
+    } catch (err) {
+      console.error('[contentScript] Erreur lors du traitement des images ZIP:', err);
+      sendResponse({ success: false, error: err.message });
+    }
+    
+    return true;
+  }
+  
+  // Pour compatibilité avec l'ancien système (au cas où)
+  if (message.type === 'processZipData') {
+    console.log('[contentScript] Demande de traitement ZIP reçue (ancien format), redirection vers le background');
+    sendResponse({ success: true, message: 'Redirection vers le background script' });
+    return true;
+  }
+});
 
 // Initialisation du listener
 registerChromeMessageListener();

@@ -5,6 +5,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  // Removed custom alias for JSZip to use native ESM import from package
   build: {
     rollupOptions: {
       input: {

@@ -8,10 +8,16 @@
     "build": "vite build",
     "watch": "vite build --watch"
   },
-  "keywords": ["chrome", "extension", "react", "vite"],
+  "keywords": [
+    "chrome",
+    "extension",
+    "react",
+    "vite"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "jszip": "^3.10.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

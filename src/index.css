@@ -124,6 +124,33 @@
     justify-content: center;
 }
 
+.zip-controls {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+}
+
+.footer-bar-input-wrapper .zip-input {
+    margin-right: 10px;
+    font-size: 14px;
+}
+
+.zip-intercept-toggle {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.zip-intercept-toggle input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+.toggle-label {
+    color: #333;
+}
+
 .footer-bar-button-wrapper {
     width: 50%;
     display: flex;
