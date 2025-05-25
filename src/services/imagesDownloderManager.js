@@ -26,7 +26,7 @@ class DownloadManager {
     }
 
     // Méthode statique pour télécharger un tableau d'images
-    static async downloadImages(images, folderName = 'images') {
+    static async downloadImages(images, folderName) {
         console.log(`[DownloadManager] Début du téléchargement de ${images.length} images avec le nom de dossier: ${folderName}`);
         
         if (images.length === 0) {
@@ -41,8 +41,14 @@ class DownloadManager {
             return;
         }
 
-        // Si aucun nom de dossier n'est fourni, utiliser la valeur par défaut
-        const baseName = folderName || 'images';
+        // Vérifie si un nom de dossier a été fourni
+        if (!folderName || folderName.trim() === '') {
+            console.log('[DownloadManager] Nom de dossier manquant');
+            alert('Barcode manquant, veuillez saisir le barcode du produit');
+            return;
+        }
+        
+        const baseName = folderName.trim();
         console.log(`[DownloadManager] Nom de dossier utilisé: ${baseName}`);
 
         // Crée le chemin du dossier avec la date
@@ -53,24 +59,26 @@ class DownloadManager {
         // Télécharge chaque image avec un délai
         for (let i = 0; i < images.length; i++) {
             try {
-                // Extrait le nom de fichier original de l'URL
-                const urlObj = new URL(images[i]);
+                const entry = images[i];
+                const url = typeof entry === 'object' ? entry.url : entry;
+                const order = entry.order || 0;
+                const urlObj = new URL(url);
                 const originalFilename = urlObj.pathname.split('/').pop() || `image-${i + 1}`;
                 
                 // Extrait l'extension du fichier
                 const extension = originalFilename.split('.').pop().split('?')[0] || 'jpg';
                 
-                // Utilise le nom de fichier original
-                const filename = originalFilename;
+                const prefix = order > 0 ? String(order).padStart(2, '0') + '-' : '';
+                const filename = `${prefix}${originalFilename}`;
 
-                console.log(`[DownloadManager] Téléchargement de l'image ${i+1}/${images.length}: ${images[i]}`);
+                console.log(`[DownloadManager] Téléchargement de l'image ${i+1}/${images.length}: ${url}`);
                 console.log(`[DownloadManager] Chemin de destination: ${folderPath}/${filename}`);
                 
                 // Utilise uniquement l'événement personnalisé pour le téléchargement
                 // Le contentScript.js écoutera cet événement et utilisera chrome.runtime.sendMessage
                 document.dispatchEvent(new CustomEvent('TTO_DOWNLOAD_IMAGES', {
                     detail: {
-                        url: images[i],
+                        url: url,
                         filename: `${folderPath}/${filename}`
                     }
                 }));

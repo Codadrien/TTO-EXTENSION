@@ -15,27 +15,42 @@ function App() {
   const [largeCount, setLargeCount] = useState(0);
 
   // State pour images sélectionnées (plusieurs)
-  const [selectedImages, setSelectedImages] = useState([]);
-  
+  const [selectedOrder, setSelectedOrder] = useState({});
+
   // State pour le nom du dossier de téléchargement
-  const [folderName, setFolderName] = useState('images');
+  const [folderName, setFolderName] = useState('');
 
   // Fonction pour gérer le clic sur une image et injecter une classe
   const handleImageClick = (idx) => {
-    setSelectedImages(prev =>
-      prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
-    );
+    setSelectedOrder(prev => {
+      const newOrder = { ...prev };
+      if (newOrder[idx]) {
+        const removedOrder = newOrder[idx];
+        delete newOrder[idx];
+        Object.keys(newOrder).forEach(key => {
+          const k = Number(key);
+          if (newOrder[k] > removedOrder) {
+            newOrder[k] = newOrder[k] - 1;
+          }
+        });
+      } else {
+        const nextOrder = Object.keys(prev).length + 1;
+        newOrder[idx] = nextOrder;
+      }
+      return newOrder;
+    });
   };
 
   // Fonction pour télécharger les images sélectionnées
   const handleDownload = () => {
-    const urls = images
-      .filter((_, idx) => selectedImages.includes(idx))
-      .map(img => img.url);
-    console.log('Images envoyées:', urls);
-    
-    // Utiliser DownloadManager pour télécharger les images avec le nom de dossier spécifié
-    DownloadManager.downloadImages(urls, folderName);
+    const urlsWithNumber = Object.entries(selectedOrder)
+      .sort((a, b) => a[1] - b[1])
+      .map(([idx, order]) => ({
+        url: images[idx].url,
+        order,
+      }));
+    console.log('Images envoyées avec ordre:', urlsWithNumber);
+    DownloadManager.downloadImages(urlsWithNumber, folderName);
   };
 
   useEffect(() => {
@@ -106,7 +121,7 @@ function App() {
             <div className="image-card" key={idx}>
               {/* L'image */}
               <img
-                className={`image-item ${selectedImages.includes(idx) ? 'selected-image' : ''}`}
+                className={`image-item ${selectedOrder[idx] ? 'selected-image' : ''}`}
                 src={url}
                 alt={`Image ${idx + 1}`}
                 onClick={() => handleImageClick(idx)}
@@ -126,20 +141,27 @@ function App() {
                   {weight ? `${weight} Ko` : '?'}
                 </div>
               </div>
+              {selectedOrder[idx] && (
+                <div className="order-badge">{selectedOrder[idx]}</div>
+              )}
             </div>
           ))}
         </div>
       </div>
       {/* Barre fixe en bas, hors du panel */}
       <div className="footer-bar">
-        <input 
-          type="text" 
-          value={folderName} 
-          onChange={(e) => setFolderName(e.target.value)} 
-          placeholder="Nom du dossier" 
-          className="folder-name-input" 
-        />
-        <button onClick={handleDownload}>Télécharger les images</button>
+        <div className="footer-bar-input-wrapper">
+          <input 
+            type="text" 
+            value={folderName} 
+            onChange={(e) => setFolderName(e.target.value)} 
+            placeholder="Barcode" 
+            className="folder-name-input" 
+          />
+        </div>
+        <div className="footer-bar-button-wrapper">
+          <button onClick={handleDownload}>Télécharger les images</button>
+        </div>
       </div>
     </>
   );
