@@ -20,7 +20,8 @@ function toggleTTO() {
 
     const styleLink = document.createElement('link');
     styleLink.rel = 'stylesheet';
-    styleLink.href = chrome.runtime.getURL('assets/index-1b1a0eab.css');
+    // Charger le CSS sans hash généré index.css
+    styleLink.href = chrome.runtime.getURL('assets/index.css');
     document.head.appendChild(styleLink);
 
     const container = document.createElement('div');
