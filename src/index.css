@@ -15,6 +15,12 @@
     background-color: #e8e8e8;
 }
 
+.selected-image {
+    cursor: pointer;
+    /* Bordure bleue sur l'image sélectionnée */
+    outline: 4px solid rgb(88, 88, 255);
+}
+
 .image-grid {
     display: flex;
     flex-wrap: wrap;
@@ -92,4 +98,28 @@
 .image-counts {
     font-family: rubik;
     font-size: 14px;
+}
+
+/* Barre fixe en bas dans le panel */
+.footer-bar {
+    position: sticky;
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    background: #fff;
+    text-align: right;
+    box-shadow: 0 -2px 5px #0000001a;
+    z-index: 2;
+}
+
+.footer-bar button {
+    background-color: #1e662d;
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.footer-bar button:hover {
+    background-color: #052913;
 }
