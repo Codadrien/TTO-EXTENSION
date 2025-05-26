@@ -62,7 +62,17 @@ class DownloadManager {
                 const entry = images[i];
                 const url = typeof entry === 'object' ? entry.url : entry;
                 const order = entry.order || 0;
-                const urlObj = new URL(url);
+                // Normaliser les URLs protocol-relative (//...) et relative (/path)
+                let normalizedUrl;
+                if (url.startsWith('//')) {
+                    normalizedUrl = 'https:' + url;
+                } else if (url.startsWith('/')) {
+                    normalizedUrl = window.location.origin + url;
+                } else {
+                    normalizedUrl = url;
+                }
+                // Construire URL avec fallback base
+                const urlObj = new URL(normalizedUrl, window.location.origin);
                 const originalFilename = urlObj.pathname.split('/').pop() || `image-${i + 1}`;
                 
                 // Extrait l'extension du fichier
@@ -78,7 +88,7 @@ class DownloadManager {
                 // Le contentScript.js écoutera cet événement et utilisera chrome.runtime.sendMessage
                 document.dispatchEvent(new CustomEvent('TTO_DOWNLOAD_IMAGES', {
                     detail: {
-                        url: url,
+                        url: normalizedUrl,
                         filename: `${folderPath}/${filename}`
                     }
                 }));

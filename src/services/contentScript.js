@@ -5,10 +5,20 @@
  * @returns {string[]}
  */
 function collectImgTagUrls() {
-  const urls = Array.from(document.images)
-    .map(img => img.currentSrc || img.src)
-    .filter(Boolean);
-  return urls;
+  // On récupère currentSrc/src puis on parse srcset pour toutes les variantes
+  const urls = new Set();
+  document.querySelectorAll('img').forEach(img => {
+    const src = img.currentSrc || img.src;
+    if (src) urls.add(src);
+    const srcset = img.getAttribute('srcset');
+    if (srcset) {
+      srcset.split(',').forEach(item => {
+        const [url] = item.trim().split(/\s+/);
+        if (url) urls.add(url);
+      });
+    }
+  });
+  return Array.from(urls);
 }
 
 /**
@@ -124,6 +134,7 @@ function getImageWeight(url) {
  * @returns {Promise<{url:string,format:string,weight:number|null}[]>}
  */
 async function filterAndEnrichImages(urls, threshold = 500) {
+  // Mesurer la hauteur de chaque URL
   const measures = await Promise.all(urls.map(url =>
     new Promise(resolve => {
       const img = new Image(); img.src = url;
@@ -131,17 +142,28 @@ async function filterAndEnrichImages(urls, threshold = 500) {
       img.onerror = () => resolve(null);
     })
   ));
-  const filtered = measures
-    .filter(item => item && item.height > threshold)
-    .sort((a, b) => b.height - a.height)
-    .map(item => item.url);
-  const enriched = await Promise.all(filtered.map(async url => {
+  // Filtrer les images au-dessus du seuil
+  const filtered = measures.filter(item => item && item.height > threshold);
+  // Regrouper par URL de base (sans param width) et ne garder que la hauteur max
+  const groups = new Map();
+  filtered.forEach(item => {
+    const u = new URL(item.url, window.location.origin);
+    u.searchParams.delete('width');
+    const key = u.toString();
+    if (!groups.has(key) || item.height > groups.get(key).height) {
+      groups.set(key, item);
+    }
+  });
+  const uniqueItems = Array.from(groups.values()).sort((a, b) => b.height - a.height);
+  if (uniqueItems.length === 0) return [];
+  // Enrichir chaque image retenue avec format et poids
+  const enriched = await Promise.all(uniqueItems.map(async ({ url }) => {
     const format = await getRealFormat(url);
     const weightBytes = await getImageWeight(url);
-    const weight = weightBytes != null ? Math.round((weightBytes/1024)*100)/100 : null;
+    const weight = weightBytes != null ? Math.round((weightBytes / 1024) * 100) / 100 : null;
     return { url, format, weight };
   }));
-  console.log(`[contentScript] Liste d'url de plus de 500px avec metadonnée:`, enriched);
+  console.log(`[contentScript] Images retenues (une par base) :`, enriched);
   return enriched;
 }
 
