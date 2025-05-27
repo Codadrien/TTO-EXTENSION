@@ -21,60 +21,54 @@ export async function getImages() {
     };
   }
 
-  // Vérifier si nous sommes dans un contexte d'extension Chrome
-  if (typeof chrome !== 'undefined' && chrome.runtime) {
-    // Essayer d'abord la méthode par événement personnalisé (pour l'injection directe)
-    try {
-      const result = await new Promise((resolve, reject) => {
-        // Fonction qui sera appelée quand les données sont reçues
-        const handleImageData = (event) => {
-          console.log('[apiService] Données reçues via événement personnalisé:', event.detail);
-          document.removeEventListener('TTO_IMAGES_DATA', handleImageData);
-          resolve(event.detail);
-        };
+  // Extension injectée en JS : toujours appeler le content script
+  // Essayer d'abord la méthode par événement personnalisé
+  try {
+    const result = await new Promise((resolve, reject) => {
+      // Fonction qui sera appelée quand les données sont reçues
+      const handleImageData = (event) => {
+        console.log('[apiService] Données reçues via événement personnalisé:', event.detail);
+        document.removeEventListener('TTO_IMAGES_DATA', handleImageData);
+        resolve(event.detail);
+      };
 
-        // Écouter l'événement personnalisé
-        document.addEventListener('TTO_IMAGES_DATA', handleImageData);
+      // Écouter l'événement personnalisé
+      document.addEventListener('TTO_IMAGES_DATA', handleImageData);
 
-        // Définir un timeout pour fallback vers la méthode chrome.tabs si nécessaire
-        setTimeout(() => {
-          document.removeEventListener('TTO_IMAGES_DATA', handleImageData);
-          reject(new Error('Timeout waiting for custom event'));
-        }, 2000);
-      });
-
-      return result;
-    } catch (error) {
-      console.log('[apiService] Fallback vers méthode chrome.tabs:', error);
-      // Fallback vers la méthode chrome.tabs si l'événement personnalisé échoue
-    }
-
-    // Méthode originale via chrome.tabs
-    return new Promise((resolve, reject) => {
-      chrome.tabs.query(
-        { active: true, currentWindow: true },
-        ([tab]) => {
-          if (!tab?.id) return reject(new Error('No active tab'));
-          chrome.tabs.sendMessage(
-            tab.id,
-            { type: 'SCRAPE_IMAGES' },
-            response => {
-              if (chrome.runtime.lastError) {
-                return reject(chrome.runtime.lastError);
-              }
-              // Return images along with counts
-              resolve({ 
-                images: response.images || [], 
-                totalCount: response.totalCount || 0, 
-                largeCount: response.largeCount || 0 
-              });
-            }
-          );
-        }
-      );
+      // Définir un timeout pour fallback vers la méthode chrome.tabs si nécessaire
+      setTimeout(() => {
+        document.removeEventListener('TTO_IMAGES_DATA', handleImageData);
+        reject(new Error('Timeout waiting for custom event'));
+      }, 2000);
     });
+
+    return result;
+  } catch (error) {
+    console.log('[apiService] Fallback vers méthode chrome.tabs:', error);
   }
 
-  // Si nous ne sommes ni en DEV ni dans une extension Chrome
-  throw new Error('Environnement non supporté');
+  // Méthode originale via chrome.tabs
+  return new Promise((resolve, reject) => {
+    chrome.tabs.query(
+      { active: true, currentWindow: true },
+      ([tab]) => {
+        if (!tab?.id) return reject(new Error('No active tab'));
+        chrome.tabs.sendMessage(
+          tab.id,
+          { type: 'SCRAPE_IMAGES' },
+          response => {
+            if (chrome.runtime.lastError) {
+              return reject(chrome.runtime.lastError);
+            }
+            // Return images along with counts
+            resolve({ 
+              images: response.images || [], 
+              totalCount: response.totalCount || 0, 
+              largeCount: response.largeCount || 0 
+            });
+          }
+        );
+      }
+    );
+  });
 }
