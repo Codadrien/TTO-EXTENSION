@@ -48,7 +48,6 @@ function collectAllUrls() {
   const cssUrls = collectCssBackgroundUrls();
   const attrUrls = collectAttrUrls();
   const allUrls = Array.from(new Set([...imgUrls, ...cssUrls, ...attrUrls]));
-  console.log(`[contentScript] liste url d'image de la page:`, allUrls);
   return allUrls;
 }
 
@@ -90,7 +89,6 @@ function getRealFormat(url) {
       }
     })
     .catch(err => {
-      console.error('Erreur lecture signature :', err);
       return 'unknown';
     });
 }
@@ -112,7 +110,6 @@ function getImageWeight(url) {
       return len ? parseInt(len, 10) : null;
     })
     .catch(err => {
-      console.error('Erreur HEAD pour le poids :', err);
       return null;
     });
 }
@@ -141,7 +138,7 @@ async function filterAndEnrichImages(urls, threshold = 500) {
     const weight = weightBytes != null ? Math.round((weightBytes/1024)*100)/100 : null;
     return { url, format, weight };
   }));
-  console.log(`[contentScript] Liste d'url de plus de 500px avec metadonnée:`, enriched);
+  console.log('[contentScript] Liste d\'url de plus de 500px avec metadonnée:', enriched);
   return enriched;
 }
 
@@ -158,8 +155,7 @@ function registerChromeMessageListener() {
         .then(imagesWithFormat => {
           const largeCount = imagesWithFormat.length;
           const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
-          console.log(`[contentScript] Données envoyées à React:`, responsePayload);
-          sendResponse(responsePayload);
+          document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { detail: responsePayload }));
         });
       return true;
     }
@@ -167,55 +163,30 @@ function registerChromeMessageListener() {
   
   // Ajouter des écouteurs pour les événements personnalisés
   document.addEventListener('TTO_PANEL_OPENED', () => {
-    console.log('[contentScript] Panneau ouvert, traitement des images...');
-    // Traitement direct des images
     const allUrls = collectAllUrls();
     const totalCount = allUrls.length;
     filterAndEnrichImages(allUrls, 500)
       .then(imagesWithFormat => {
         const largeCount = imagesWithFormat.length;
         const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
-        console.log(`[contentScript] Données prêtes via événement:`, responsePayload);
-        
-        // Créer un événement personnalisé avec les données
-        const event = new CustomEvent('TTO_IMAGES_DATA', { 
-          detail: responsePayload 
-        });
-        
-        // Envoyer les données à l'application React
+        const event = new CustomEvent('TTO_IMAGES_DATA', { detail: responsePayload });
         document.dispatchEvent(event);
       });
   });
   
   // Écouteur pour les événements de téléchargement
   document.addEventListener('TTO_DOWNLOAD_IMAGES', (event) => {
-    console.log('[contentScript] Événement de téléchargement reçu:', event.detail);
-    
-    // Vérifier que les données sont valides
     if (!event.detail || !event.detail.url || !event.detail.filename) {
-      console.error('[contentScript] Données de téléchargement invalides:', event.detail);
       return;
     }
-    
-    // Transmettre la demande de téléchargement au background script
     try {
-      console.log('[contentScript] Envoi du message de téléchargement au background script');
-      console.log('[contentScript] URL:', event.detail.url);
-      console.log('[contentScript] Chemin de destination:', event.detail.filename);
-      
       chrome.runtime.sendMessage({
         type: 'download',
         url: event.detail.url,
         filename: event.detail.filename
       }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('[contentScript] Erreur lors de l\'envoi du message:', chrome.runtime.lastError);
-        } else {
-          console.log('[contentScript] Réponse du background script:', response);
-        }
       });
     } catch (error) {
-      console.error('[contentScript] Exception lors de l\'envoi du message:', error);
     }
   });
 }
@@ -224,28 +195,19 @@ function registerChromeMessageListener() {
  * Analyse les images de la page et envoie les résultats à l'UI React
  */
 function updateImagesData() {
-  // Vérifier si le panneau est visible
   if (!document.getElementById('tto-extension-container')) return;
-  
-  console.log('[contentScript] Mise à jour des données d\'images...');
   const allUrls = collectAllUrls();
   const totalCount = allUrls.length;
-  
   filterAndEnrichImages(allUrls, 500).then(imagesWithFormat => {
     const largeCount = imagesWithFormat.length;
     const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
-    
-    // Envoyer les données à l'application React via un événement personnalisé
-    document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { 
-      detail: responsePayload 
-    }));
+    document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { detail: responsePayload }));
   });
 }
 
 // Ajouter un écouteur pour les clics sur la page
 let debounceTimer = null;
 document.addEventListener('click', () => {
-  // Utiliser un debounce pour éviter trop d'appels rapprochés
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     updateImagesData();

@@ -2,11 +2,9 @@
 function toggleTTO() {
   const containerId = 'tto-extension-container';
   const ANIMATION_DELAY = 50; // délai avant slide-in (ms)
-  console.log('[tto] toggle panel, containerId:', containerId);
 
   // Ouvre le panneau
   function openPanel() {
-    console.log('[tto] openPanel');
 
     const oldScript = document.querySelector('script[src*="main.js"]');
     if (oldScript) {
@@ -80,7 +78,6 @@ function toggleTTO() {
 
   // Ferme le panneau
   function closePanel(container) {
-    console.log('[tto] closePanel');
     if (window.__ttoRoot) { try { window.__ttoRoot.unmount(); } catch {} }
     container.style.transition = 'transform 0.20s ease-in';
     container.style.transform = 'translateX(100%)';

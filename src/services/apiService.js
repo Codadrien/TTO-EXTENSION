@@ -27,7 +27,7 @@ export async function getImages() {
     const result = await new Promise((resolve, reject) => {
       // Fonction qui sera appelée quand les données sont reçues
       const handleImageData = (event) => {
-        console.log('[apiService] Données reçues via événement personnalisé:', event.detail);
+        console.log('[contentScript] Données reçues :', event.detail);
         document.removeEventListener('TTO_IMAGES_DATA', handleImageData);
         resolve(event.detail);
       };
@@ -44,7 +44,6 @@ export async function getImages() {
 
     return result;
   } catch (error) {
-    console.log('[apiService] Fallback vers méthode chrome.tabs:', error);
   }
 
   // Méthode originale via chrome.tabs

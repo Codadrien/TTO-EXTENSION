@@ -55,8 +55,6 @@ function App() {
         needsProcessing: processImages.includes(Number(idx))
       }));
     
-    console.log('Images envoyées avec ordre et statut de traitement:', urlsWithNumber);
-    
     // TODO: Traiter les images marquées avant téléchargement
     // Pour l'instant, on télécharge toutes les images sans traitement
     DownloadManager.downloadImages(urlsWithNumber, folderName);
@@ -84,7 +82,7 @@ function App() {
         setTotalCount(total);
         setLargeCount(large);
       })
-      .catch(error => console.error('Erreur getImages:', error));
+      .catch(error => console.error(error));
   }, []);
 
   // Pour chaque image, charger dynamiquement les dimensions (largeur/hauteur)
@@ -112,7 +110,7 @@ function App() {
     
     // Fonction pour mettre à jour les données d'images
     const handleImagesUpdate = (event) => {
-      console.log('[React] Reçu mise à jour des images:', event.detail);
+      console.log('[React] Données reçues :', event.detail);
       const { images: imgs, totalCount: total, largeCount: large } = event.detail;
       setImages(imgs);
       setTotalCount(total);
