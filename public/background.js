@@ -31,7 +31,7 @@ function toggleTTO() {
       top: '0',
       right: '0',
       width: '515px',
-      height: '70%',
+      maxHeight: '70%',
       zIndex: '999999',
       backgroundColor: '#fff',
       borderRadius: '0px 0px 0px 15px',
