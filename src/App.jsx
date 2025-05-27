@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'; // On importe useEffect ET useState
 import './index.css'; // On importe le CSS principal
 import { getImages } from './services/apiService';
-import DownloadManager from './services/imagesDownloderManager';
+// import DownloadManager from './services/imagesDownloderManager'; // plus utilisé
 
 function App() {
   // State pour stocker la liste des URLs d'images
@@ -44,20 +44,17 @@ function App() {
     });
   };
 
-  // Fonction pour télécharger les images sélectionnées
+  // Fonction pour télécharger et (éventuellement) traiter les images via le background
   const handleDownload = () => {
-    // Préparer les images avec leur ordre et marquer celles qui nécessitent un traitement
-    const urlsWithNumber = Object.entries(selectedOrder)
+    const entries = Object.entries(selectedOrder)
       .sort((a, b) => a[1] - b[1])
       .map(([idx, order]) => ({
         url: images[idx].url,
         order,
         needsProcessing: processImages.includes(Number(idx))
       }));
-    
-    // TODO: Traiter les images marquées avant téléchargement
-    // Pour l'instant, on télécharge toutes les images sans traitement
-    DownloadManager.downloadImages(urlsWithNumber, folderName);
+    // Envoie un événement pour déclencher traitement et téléchargement en background
+    document.dispatchEvent(new CustomEvent('TTO_PROCESS_AND_DOWNLOAD', { detail: { entries, folderName } }));
   };
 
   // Fonction pour gérer le clic sur le bouton vert (traitement spécial)

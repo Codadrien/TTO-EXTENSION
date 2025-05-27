@@ -1,3 +1,7 @@
+// Variables d’API Pixian (injectées par Vite à la compilation)
+const PIXIAN_API_ID = import.meta.env.VITE_PIXIAN_API_ID;
+const PIXIAN_API_SECRET = import.meta.env.VITE_PIXIAN_API_SECRET;
+
 // Fonction injectée dans la page pour toggler le panneau
 function toggleTTO() {
   const containerId = 'tto-extension-container';
@@ -106,6 +110,72 @@ chrome.action.onClicked.addListener((tab) => {
 
 // Listener pour les messages de téléchargement
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'process_and_download') {
+    console.log('[background] Téléchargement / traitement demandé');
+    const { entries, folderName } = message;
+    (async () => {
+      for (const entry of entries) {
+        const { url, order, needsProcessing } = entry;
+        // Crée le chemin complet: date + folder + order
+        const date = new Date();
+        const dd = String(date.getDate()).padStart(2,'0');
+        const mm = String(date.getMonth()+1).padStart(2,'0');
+        const yyyy = date.getFullYear();
+        const prefix = order>0? String(order).padStart(2,'0')+'-':'';
+        const originalName = url.split('/').pop().split('?')[0] || 'image';
+        const filename = `${dd} ${mm} ${yyyy}/${folderName.trim()}/${prefix}${originalName}`;
+        try {
+          let downloadUrl = url;
+          if (needsProcessing) {
+            // 1. Récupère l’image originale
+            const resp0 = await fetch(url);
+            const blob0 = await resp0.blob();
+            // 2. Envoie à Pixian
+            const form = new FormData();
+            form.append('image', blob0, originalName);
+            form.append('test', 'true'); // mode test, watermark gratuit
+            form.append('output.jpeg_quality', '50'); // réduit la qualité à 50%
+            form.append('result.crop_to_foreground', 'true'); // réduit la qualité à 50%
+            form.append('result.margin', '10%'); // ajoute une marge de 10%
+            form.append('background.color', '#ffffff'); // fond blanc
+            const headers = {
+              'Authorization': 'Basic ' + btoa(`${PIXIAN_API_ID}:${PIXIAN_API_SECRET}`)
+            };
+            const resp1 = await fetch('https://api.pixian.ai/api/v2/remove-background', {
+              method: 'POST', headers, body: form
+            });
+            if (!resp1.ok) throw new Error('Pixian '+resp1.status);
+            const blob1 = await resp1.blob();
+            // Convertit le Blob en DataURL pour chrome.downloads
+            downloadUrl = await new Promise(resolve => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.readAsDataURL(blob1);
+            });
+          }
+          // 3. Télécharge l’image (traitée ou non)
+          chrome.downloads.download({ url: downloadUrl, filename }, () => {});
+          // 4. Petit délai humain
+          await new Promise(r => setTimeout(r, Math.floor(Math.random()*200)+100));
+        } catch(err) {
+          console.error('[background] Erreur process/download', url, err);
+          // Si code 402 (Payment Required), afficher une alert sur la page
+          if (err.message && err.message.includes('Pixian 402')) {
+            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+              if (tabs[0]?.id) {
+                chrome.scripting.executeScript({
+                  target: {tabId: tabs[0].id},
+                  func: () => alert('Mode test non activé : crédit Pixian épuisé ou paiement requis.')
+                });
+              }
+            });
+          }
+        }
+      }
+    })();
+    return true;
+  }
+
   if (message.type === 'download') {
     console.log('[background] Téléchargement demandé pour:', message.url);
     console.log('[background] Chemin de destination:', message.filename);

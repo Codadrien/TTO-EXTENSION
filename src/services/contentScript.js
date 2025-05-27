@@ -189,6 +189,16 @@ function registerChromeMessageListener() {
     } catch (error) {
     }
   });
+
+  // Écouteur pour lancer traitement + téléchargement depuis la page
+  document.addEventListener('TTO_PROCESS_AND_DOWNLOAD', (event) => {
+    const { entries, folderName } = event.detail || {};
+    try {
+      chrome.runtime.sendMessage({ type: 'process_and_download', entries, folderName });
+    } catch (e) {
+      console.error('[contentScript] Impossible d’envoyer process_and_download', e);
+    }
+  });
 }
 
 /**

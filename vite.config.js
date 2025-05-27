@@ -9,7 +9,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         content: resolve(__dirname, 'src/services/contentScript.js'),
-        main: resolve(__dirname, 'index.html')
+        main: resolve(__dirname, 'index.html'),
+        background: resolve(__dirname, 'public/background.js')
       },
       output: {
         entryFileNames: assetInfo => {

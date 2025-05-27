@@ -11,10 +11,11 @@
   "action": {
     "default_title": "Extension Photo TTO"
   },
-  "permissions": ["activeTab", "scripting", "downloads"],
+  "permissions": ["activeTab", "scripting", "downloads", "notifications"],
   "host_permissions": ["<all_urls>"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
