@@ -134,10 +134,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const form = new FormData();
             form.append('image', blob0, originalName);
             form.append('test', 'true'); // mode test, watermark gratuit
-            form.append('output.jpeg_quality', '50'); // réduit la qualité à 50%
-            form.append('result.crop_to_foreground', 'true'); // réduit la qualité à 50%
-            form.append('result.margin', '10%'); // ajoute une marge de 10%
+            form.append('result.crop_to_foreground', 'true'); // crop bord à bord
+            form.append('result.margin', '5%'); // ajoute une marge de 10%
             form.append('background.color', '#ffffff'); // fond blanc
+            form.append('result.target_size', '2000 2000'); // taille maximale en px
+            form.append('output.jpeg_quality', '75'); // réduit la qualité à 50%
+            
             const headers = {
               'Authorization': 'Basic ' + btoa(`${PIXIAN_API_ID}:${PIXIAN_API_SECRET}`)
             };
