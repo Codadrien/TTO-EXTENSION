@@ -1,5 +1,26 @@
 import React, { useEffect, useState } from 'react'; // On importe useEffect ET useState
 import './index.css'; // On importe le CSS principal
+
+// Style pour les indicateurs de traitement
+const styles = `
+  .processing-indicator {
+    position: absolute;
+    bottom: 30px;
+    right: 5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    z-index: 10;
+  }
+  .pixian-process {
+    background-color: #4CAF50;
+  }
+  .resize-process {
+    background-color: #2196F3;
+  }
+`;
 import { getImages } from './services/apiService';
 // import DownloadManager from './services/imagesDownloderManager'; // plus utilisé
 
@@ -20,7 +41,8 @@ function App() {
   // State pour le nom du dossier de téléchargement
   const [folderName, setFolderName] = useState('');
 
-  // State pour les images qui nécessitent un traitement spécial (remove bg)
+  // State pour les images qui nécessitent un traitement spécial (remove bg avec Pixian)
+  // Si une image n'est pas dans ce tableau mais est sélectionnée, elle sera traitée avec un simple resize
   const [processImages, setProcessImages] = useState([]);
 
   // Fonction pour gérer le clic sur une image (sélection standard)
@@ -44,7 +66,10 @@ function App() {
     });
   };
 
-  // Fonction pour télécharger et (éventuellement) traiter les images via le background
+  // Fonction pour télécharger et traiter les images via le background
+  // Deux types de traitement possibles:
+  // 1. Traitement Pixian (remove bg) si l'image est dans processImages
+  // 2. Simple redimensionnement si l'image est sélectionnée mais pas dans processImages
   const handleDownload = () => {
     const entries = Object.entries(selectedOrder)
       .sort((a, b) => a[1] - b[1])
@@ -55,22 +80,34 @@ function App() {
       }));
     // Envoie un événement pour déclencher traitement et téléchargement en background
     document.dispatchEvent(new CustomEvent('TTO_PROCESS_AND_DOWNLOAD', { detail: { entries, folderName } }));
+    console.log('[App] Images à traiter:', entries.map(e => ({ ...e, type: e.needsProcessing ? 'Pixian' : 'Resize' })));
   };
 
-  // Fonction pour gérer le clic sur le bouton vert (traitement spécial)
+  // Fonction pour gérer le clic sur le bouton vert (traitement spécial avec Pixian)
   const handleProcessClick = (idx) => {
     // D'abord sélectionner l'image normalement (pour l'ordre)
     handleImageClick(idx);
     
-    // Ensuite marquer pour traitement spécial
+    // Ensuite marquer pour traitement spécial avec Pixian
     setProcessImages(prev => {
       if (prev.includes(idx)) {
-        return prev.filter(i => i !== idx);
+        return prev.filter(i => i !== idx); // Désactive le traitement Pixian
       } else {
-        return [...prev, idx];
+        return [...prev, idx]; // Active le traitement Pixian
       }
     });
   };
+
+  // Ajouter les styles CSS pour les indicateurs de traitement
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = styles;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
 
   useEffect(() => {
     getImages()
@@ -147,6 +184,12 @@ function App() {
                 alt={`Image ${idx + 1}`}
                 onClick={() => handleImageClick(idx)}
               />
+              {/* Indicateur visuel du type de traitement */}
+              {selectedOrder[idx] && (
+                <div className={`processing-indicator ${processImages.includes(idx) ? 'pixian-process' : 'resize-process'}`}>
+                  {processImages.includes(idx) ? 'Pixian' : 'Resize'}
+                </div>
+              )}
               {/* Détails sous l'image, superposés */}
               <div className="image-details">
                 <div className="size">

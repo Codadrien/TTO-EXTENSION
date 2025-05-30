@@ -2,6 +2,106 @@
 const PIXIAN_API_ID = import.meta.env.VITE_PIXIAN_API_ID;
 const PIXIAN_API_SECRET = import.meta.env.VITE_PIXIAN_API_SECRET;
 
+// Fonction pour traiter une image avec Pixian (suppression de fond)
+async function processWithPixian(url, originalName) {
+  console.log('[background] Traitement Pixian pour:', url);
+  
+  // 1. Récupère l'image originale
+  const resp0 = await fetch(url);
+  const blob0 = await resp0.blob();
+  
+  // 2. Envoie à Pixian
+  const form = new FormData();
+  form.append('image', blob0, originalName);
+  form.append('test', 'true'); // mode test, watermark gratuit
+  form.append('result.crop_to_foreground', 'true'); // crop bord à bord
+  form.append('result.margin', '5%'); // ajoute une marge de 5%
+  form.append('background.color', '#ffffff'); // fond blanc
+  form.append('result.target_size', '2000 2000'); // taille maximale en px
+  form.append('output.jpeg_quality', '75'); // qualité 75%
+  
+  const headers = {
+    'Authorization': 'Basic ' + btoa(`${PIXIAN_API_ID}:${PIXIAN_API_SECRET}`)
+  };
+  
+  const resp1 = await fetch('https://api.pixian.ai/api/v2/remove-background', {
+    method: 'POST', headers, body: form
+  });
+  
+  if (!resp1.ok) throw new Error('Pixian ' + resp1.status);
+  
+  const blob1 = await resp1.blob();
+  
+  // 3. Convertit le Blob en DataURL pour chrome.downloads avec format forcé en JPG
+  return await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Force le format en JPG en remplaçant le type MIME dans le DataURL
+      const dataUrl = reader.result;
+      // S'assure que c'est bien un JPG dans le header du DataURL
+      const jpgDataUrl = dataUrl.replace(/^data:image\/[^;]+;base64,/, 'data:image/jpeg;base64,');
+      resolve(jpgDataUrl);
+    };
+    reader.readAsDataURL(blob1);
+  });
+}
+
+// Fonction pour redimensionner une image sans traitement Pixian
+async function processWithResize(url, originalName) {
+  console.log('[background] Redimensionnement simple pour:', url);
+  
+  // 1. Récupère l'image originale
+  const resp = await fetch(url);
+  const blob = await resp.blob();
+  
+  // 2. Redimensionne l'image avec canvas
+  const img = await createImageBitmap(blob);
+  
+  // Dimensions maximales souhaitées
+  const MAX_WIDTH = 1500;
+  const MAX_HEIGHT = 1500;
+  
+  // Calcul des nouvelles dimensions en conservant le ratio
+  let width = img.width;
+  let height = img.height;
+  
+  if (width > MAX_WIDTH) {
+    height = Math.round(height * (MAX_WIDTH / width));
+    width = MAX_WIDTH;
+  }
+  
+  if (height > MAX_HEIGHT) {
+    width = Math.round(width * (MAX_HEIGHT / height));
+    height = MAX_HEIGHT;
+  }
+  
+  // Création du canvas pour le redimensionnement
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+  
+  // Dessin de l'image redimensionnée
+  ctx.drawImage(img, 0, 0, width, height);
+  
+  // Conversion en blob avec qualité 90% et format forcé en JPG
+  const resizedBlob = await canvas.convertToBlob({
+    type: 'image/jpeg',
+    quality: 0.90
+  });
+  
+  // 3. Convertit le Blob en DataURL avec format forcé en JPG
+  return await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Force le format en JPG en remplaçant le type MIME dans le DataURL
+      const dataUrl = reader.result;
+      // S'assure que c'est bien un JPG dans le header du DataURL
+      const jpgDataUrl = dataUrl.replace(/^data:image\/[^;]+;base64,/, 'data:image/jpeg;base64,');
+      resolve(jpgDataUrl);
+    };
+    reader.readAsDataURL(resizedBlob);
+  });
+}
+
 // Fonction injectée dans la page pour toggler le panneau
 function toggleTTO() {
   const containerId = 'tto-extension-container';
@@ -122,42 +222,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const mm = String(date.getMonth()+1).padStart(2,'0');
         const yyyy = date.getFullYear();
         const prefix = order>0? String(order).padStart(2,'0')+'-':'';
-        const originalName = url.split('/').pop().split('?')[0] || 'image';
+        
+        // Récupération du nom original et conversion en .jpg
+        let originalName = url.split('/').pop().split('?')[0] || 'image';
+        
+        // Force l'extension en .jpg
+        originalName = originalName.replace(/\.[^.]+$/, '') + '.jpg';
+        
         const filename = `${dd} ${mm} ${yyyy}/${folderName.trim()}/${prefix}${originalName}`;
         try {
-          let downloadUrl = url;
+          let downloadUrl;
+          
+          // Choix du traitement selon needsProcessing
           if (needsProcessing) {
-            // 1. Récupère l’image originale
-            const resp0 = await fetch(url);
-            const blob0 = await resp0.blob();
-            // 2. Envoie à Pixian
-            const form = new FormData();
-            form.append('image', blob0, originalName);
-            form.append('test', 'true'); // mode test, watermark gratuit
-            form.append('result.crop_to_foreground', 'true'); // crop bord à bord
-            form.append('result.margin', '5%'); // ajoute une marge de 10%
-            form.append('background.color', '#ffffff'); // fond blanc
-            form.append('result.target_size', '2000 2000'); // taille maximale en px
-            form.append('output.jpeg_quality', '75'); // réduit la qualité à 50%
-            
-            const headers = {
-              'Authorization': 'Basic ' + btoa(`${PIXIAN_API_ID}:${PIXIAN_API_SECRET}`)
-            };
-            const resp1 = await fetch('https://api.pixian.ai/api/v2/remove-background', {
-              method: 'POST', headers, body: form
-            });
-            if (!resp1.ok) throw new Error('Pixian '+resp1.status);
-            const blob1 = await resp1.blob();
-            // Convertit le Blob en DataURL pour chrome.downloads
-            downloadUrl = await new Promise(resolve => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result);
-              reader.readAsDataURL(blob1);
-            });
+            // Traitement avec Pixian (suppression de fond)
+            downloadUrl = await processWithPixian(url, originalName);
+          } else {
+            // Traitement simple avec redimensionnement
+            downloadUrl = await processWithResize(url, originalName);
           }
-          // 3. Télécharge l’image (traitée ou non)
-          chrome.downloads.download({ url: downloadUrl, filename }, () => {});
-          // 4. Petit délai humain
+          
+          // Télécharge l'image traitée
+          chrome.downloads.download({ url: downloadUrl, filename }, () => {
+            console.log(`[background] Image téléchargée: ${filename} (${needsProcessing ? 'Pixian' : 'Resize'})`);
+          });
+          
+          // Petit délai humain
           await new Promise(r => setTimeout(r, Math.floor(Math.random()*200)+100));
         } catch(err) {
           console.error('[background] Erreur process/download', url, err);
