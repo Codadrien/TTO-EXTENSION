@@ -187,7 +187,7 @@ function App() {
               {/* Indicateur visuel du type de traitement */}
               {selectedOrder[idx] && (
                 <div className={`processing-indicator ${processImages.includes(idx) ? 'pixian-process' : 'resize-process'}`}>
-                  {processImages.includes(idx) ? 'Pixian' : 'Resize'}
+                  {processImages.includes(idx) ? 'Détourage auto' : 'Resize + compression'}
                 </div>
               )}
               {/* Détails sous l'image, superposés */}
