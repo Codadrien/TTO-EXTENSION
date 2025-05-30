@@ -13,7 +13,7 @@ async function processWithPixian(url, originalName) {
   // 2. Envoie à Pixian
   const form = new FormData();
   form.append('image', blob0, originalName);
-  form.append('test', 'true'); // mode test, watermark gratuit
+  form.append('test', 'false'); // mode test, watermark gratuit
   form.append('result.crop_to_foreground', 'true'); // crop bord à bord
   form.append('result.margin', '5%'); // ajoute une marge de 5%
   form.append('background.color', '#ffffff'); // fond blanc
@@ -46,46 +46,71 @@ async function processWithPixian(url, originalName) {
   });
 }
 
-// Fonction pour redimensionner une image sans traitement Pixian
+// Fonction pour traiter une image sans Pixian (place l'image dans un carré blanc)
 async function processWithResize(url, originalName) {
-  console.log('[background] Redimensionnement simple pour:', url);
+  console.log('[background] Traitement simple pour:', url);
   
   // 1. Récupère l'image originale
   const resp = await fetch(url);
   const blob = await resp.blob();
   
-  // 2. Redimensionne l'image avec canvas
+  // 2. Crée l'image bitmap
   const img = await createImageBitmap(blob);
   
-  // Dimensions maximales souhaitées
-  const MAX_WIDTH = 1500;
-  const MAX_HEIGHT = 1500;
+  // Dimensions maximales permises
+  const MAX_SIZE = 2000;
   
-  // Calcul des nouvelles dimensions en conservant le ratio
-  let width = img.width;
-  let height = img.height;
+  // Dimensions originales
+  const origWidth = img.width;
+  const origHeight = img.height;
   
-  if (width > MAX_WIDTH) {
-    height = Math.round(height * (MAX_WIDTH / width));
-    width = MAX_WIDTH;
+  console.log(`[background] Dimensions originales: ${origWidth}x${origHeight}`);
+  
+  // Détermine le plus grand côté pour créer un carré
+  let squareSize = Math.max(origWidth, origHeight);
+  let needsResize = false;
+  
+  // Redimensionne si nécessaire pour respecter la taille maximale
+  if (squareSize > MAX_SIZE) {
+    const ratio = MAX_SIZE / squareSize;
+    squareSize = MAX_SIZE;
+    needsResize = true;
+    console.log(`[background] Redimensionnement du carré à: ${squareSize}x${squareSize}`);
+  } else {
+    console.log(`[background] Utilisation d'un carré de: ${squareSize}x${squareSize}`);
   }
   
-  if (height > MAX_HEIGHT) {
-    width = Math.round(width * (MAX_HEIGHT / height));
-    height = MAX_HEIGHT;
+  // Calcule les dimensions proportionnelles de l'image dans le carré
+  let width, height;
+  if (needsResize) {
+    width = Math.round(origWidth * (MAX_SIZE / squareSize));
+    height = Math.round(origHeight * (MAX_SIZE / squareSize));
+  } else {
+    width = origWidth;
+    height = origHeight;
   }
   
-  // Création du canvas pour le redimensionnement
-  const canvas = new OffscreenCanvas(width, height);
+  // Création du canvas carré avec fond blanc
+  const canvas = new OffscreenCanvas(squareSize, squareSize);
   const ctx = canvas.getContext('2d');
   
-  // Dessin de l'image redimensionnée
-  ctx.drawImage(img, 0, 0, width, height);
+  // Remplissage du fond en blanc
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, squareSize, squareSize);
+  
+  // Calcul de la position pour centrer l'image dans le carré
+  const x = (squareSize - width) / 2;
+  const y = (squareSize - height) / 2;
+  
+  // Dessin de l'image centrée sur le fond blanc
+  ctx.drawImage(img, x, y, width, height);
+  
+  console.log(`[background] Image placée dans un carré blanc de ${squareSize}x${squareSize}`);
   
   // Conversion en blob avec qualité 90% et format forcé en JPG
   const resizedBlob = await canvas.convertToBlob({
     type: 'image/jpeg',
-    quality: 0.90
+    quality: 0.90 // Bonne qualité avec compression raisonnable
   });
   
   // 3. Convertit le Blob en DataURL avec format forcé en JPG
