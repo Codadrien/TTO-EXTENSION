@@ -46,6 +46,14 @@
     transition: none !important;
 }
 
+/* Conteneur pour le header et le bouton d'importation */
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
 .header-tto {
     display: flex;
     font-size: 20px;
@@ -93,6 +101,35 @@
 /* Transforme le format d'image en majuscules */
 .format {
     text-transform: uppercase;
+}
+
+/* Conteneur pour le bouton d'importation ZIP */
+.zip-import-container {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Style du bouton d'importation ZIP */
+.zip-import-button {
+    background-color: #4a6fa5;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-family: rubik;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+/* Effet au survol du bouton */
+.zip-import-button:hover {
+    background-color: #3a5a8c;
+}
+
+/* Effet au clic sur le bouton */
+.zip-import-button:active {
+    transform: scale(0.98);
 }
 
 .image-counts {

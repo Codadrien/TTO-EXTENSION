@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react'; // On importe useEffect ET useState
+import React, { useEffect, useState, useRef } from 'react'; // On importe useEffect, useState ET useRef
 import './index.css'; // On importe le CSS principal
+// Import du service d'extraction de ZIP
+import { extractImagesFromZip, releaseImageBlobUrls } from './services/zipService';
 
 // Style pour les indicateurs de traitement
 const styles = `
@@ -30,6 +32,12 @@ function App() {
 
   // State pour stocker les infos dynamiques de chaque image (dimensions)
   const [imageInfos, setImageInfos] = useState({});
+  
+  // State pour suivre si les images viennent d'un ZIP
+  const [imagesFromZip, setImagesFromZip] = useState(false);
+  
+  // Référence pour l'input file (importation ZIP)
+  const fileInputRef = useRef(null);
 
   // State pour stocker le nombre d'images total et filtré
   const [totalCount, setTotalCount] = useState(0);
@@ -66,6 +74,43 @@ function App() {
     });
   };
 
+  /**
+   * Gère l'importation d'un fichier ZIP
+   * Cette fonction est appelée quand l'utilisateur sélectionne un fichier ZIP
+   * @param {Event} event - L'événement de changement du champ file
+   */
+  const handleZipImport = async (event) => {
+    // Récupère le fichier sélectionné
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    try {
+      // Si on avait déjà des images d'un ZIP précédent, on libère leur mémoire
+      if (imagesFromZip && images.length > 0) {
+        releaseImageBlobUrls(images);
+      }
+      
+      // Extrait les images du ZIP (hauteur minimale de 500px)
+      const extractedImages = await extractImagesFromZip(file, 500);
+      
+      // Met à jour les états avec les nouvelles images
+      setImages(extractedImages);
+      setTotalCount(extractedImages.length);
+      setLargeCount(extractedImages.length); // Toutes les images extraites sont déjà filtrées
+      setImagesFromZip(true);
+      
+      // Réinitialise les sélections
+      setSelectedOrder({});
+      setProcessImages([]);
+      
+      // Réinitialise le champ file pour permettre de sélectionner le même fichier à nouveau
+      event.target.value = null;
+    } catch (error) {
+      console.error("Erreur lors de l'importation du ZIP:", error);
+      alert("Erreur lors de l'importation du ZIP. Vérifiez que le fichier est valide.");
+    }
+  };
+  
   // Fonction pour télécharger et traiter les images via le background
   // Deux types de traitement possibles:
   // 1. Traitement Pixian (remove bg) si l'image est dans processImages
@@ -146,9 +191,13 @@ function App() {
     const handleImagesUpdate = (event) => {
       console.log('[React] Données reçues :', event.detail);
       const { images: imgs, totalCount: total, largeCount: large } = event.detail;
-      setImages(imgs);
-      setTotalCount(total);
-      setLargeCount(large);
+      
+      // Ne pas écraser les images si elles viennent d'un ZIP
+      if (!imagesFromZip) {
+        setImages(imgs);
+        setTotalCount(total);
+        setLargeCount(large);
+      }
     };
     
     // Ajouter l'écouteur d'événement
@@ -157,19 +206,42 @@ function App() {
     // Nettoyer l'écouteur lors du démontage
     return () => {
       document.removeEventListener('TTO_IMAGES_DATA', handleImagesUpdate);
+      
+      // Si on avait des images d'un ZIP, on libère leur mémoire
+      if (imagesFromZip && images.length > 0) {
+        releaseImageBlobUrls(images);
+      }
     };
-  }, []);
+  }, [imagesFromZip, images]);
 
   return (
     <>  {/* Wrapper pour panel + footer */}
       <div id="custom-side-panel" className="custom-side-panel visible">
-        {/* Header du panneau */}
-        <div id="header-tto" className="header-tto">
-          Extension Photo TTO
+        {/* Header du panneau avec bouton d'importation ZIP */}
+        <div className="header-container">
+          <div id="header-tto" className="header-tto">
+            Extension Photo TTO
+          </div>
+          {/* Bouton d'importation ZIP et input file caché */}
+          <div className="zip-import-container">
+            <button 
+              className="zip-import-button" 
+              onClick={() => fileInputRef.current.click()}
+            >
+              Importer un ZIP d'images
+            </button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleZipImport} 
+              accept=".zip" 
+              style={{ display: 'none' }} 
+            />
+          </div>
         </div>
         {/* Affichage des compteurs */}
         <div className="image-counts">
-          <strong>{totalCount}</strong> images détectées et <strong>{largeCount}</strong> &gt; 500px
+          <strong>{totalCount}</strong> images {imagesFromZip ? 'extraites du ZIP' : 'détectées'} et <strong>{largeCount}</strong> &gt; 500px
         </div>
         {/* Grille d'images */}
         <div id="imageContainer" className="image-grid">
