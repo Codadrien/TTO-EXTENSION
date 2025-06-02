@@ -115,13 +115,32 @@ function getImageWeight(url) {
 }
 
 /**
+ * scrapCdn: retourne l'URL avec une dimension maximale pour divers CDN (Cloudinary, Scene7, etc.).
+ * @param {string} urlString - URL originale du CDN.
+ * @param {number} [maxSize=2000] - taille maximale souhaitée (largeur et hauteur).
+ * @returns {string} URL modifiée avec la meilleure qualité possible.
+ */
+export function scrapCdn(urlString, maxSize = 2000) {
+  let newUrl = urlString;
+  // Remplace les dimensions de type `w_123` et `h_123` (Cloudinary, etc.)
+  newUrl = newUrl.replace(/w_(\d+)/gi, `w_${maxSize}`);
+  newUrl = newUrl.replace(/h_(\d+)/gi, `h_${maxSize}`);
+  // Remplace les paramètres de requête style `width=123`, `height=123`, `wid=123`, `hei=123`, `w=123`, `h=123`
+  newUrl = newUrl.replace(/(\b(?:width|wid|w)=)(\d+)/gi, `$1${maxSize}`);
+  newUrl = newUrl.replace(/(\b(?:height|hei|h)=)(\d+)/gi, `$1${maxSize}`);
+  return newUrl;
+}
+
+/**
  * Filtre les URLs selon la hauteur et enrichit avec format et poids.
  * @param {string[]} urls
  * @param {number} threshold
  * @returns {Promise<{url:string,format:string,weight:number|null}[]>}
  */
 async function filterAndEnrichImages(urls, threshold = 500) {
-  const measures = await Promise.all(urls.map(url =>
+  // Appliquer scrapCdn à chaque URL pour optimiser la qualité
+  const cdnUrls = urls.map(url => scrapCdn(url));
+  const measures = await Promise.all(cdnUrls.map(url =>
     new Promise(resolve => {
       const img = new Image(); img.src = url;
       img.onload = () => resolve({ url, height: img.naturalHeight });
@@ -141,6 +160,7 @@ async function filterAndEnrichImages(urls, threshold = 500) {
   console.log('[contentScript] Liste d\'url de plus de 500px avec metadonnée:', enriched);
   return enriched;
 }
+
 
 /**
  * Listener pour messages Chrome, répond de manière asynchrone.
