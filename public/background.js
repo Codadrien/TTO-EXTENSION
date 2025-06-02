@@ -8,7 +8,12 @@ async function processWithPixian(url, originalName) {
   
   // 1. Récupère l'image originale
   const resp0 = await fetch(url);
-  const blob0 = await resp0.blob();
+  let blob0 = await resp0.blob();
+  // Si format non supporté (AVIF), convertir en JPEG
+  if (blob0.type === 'image/avif' || /\.avif$/i.test(originalName)) {
+    blob0 = await convertAvifToJpeg(blob0);
+    originalName = originalName.replace(/\.avif$/i, '.jpg');
+  }
   
   // 2. Envoie à Pixian
   const form = new FormData();
@@ -18,7 +23,7 @@ async function processWithPixian(url, originalName) {
   form.append('result.margin', '5%'); // ajoute une marge de 5%
   form.append('background.color', '#ffffff'); // fond blanc
   form.append('result.target_size', '2000 2000'); // taille maximale en px
-  form.append('output.jpeg_quality', '75'); // qualité 75%
+  form.append('output.jpeg_quality', '70'); // qualité 70%
   
   const headers = {
     'Authorization': 'Basic ' + btoa(`${PIXIAN_API_ID}:${PIXIAN_API_SECRET}`)
@@ -44,6 +49,15 @@ async function processWithPixian(url, originalName) {
     };
     reader.readAsDataURL(blob1);
   });
+}
+
+// Conversion AVIF → JPEG via canvas (pour compatibilité Pixian)
+async function convertAvifToJpeg(blob) {
+  const imgBitmap = await createImageBitmap(blob);
+  const canvas = new OffscreenCanvas(imgBitmap.width, imgBitmap.height);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(imgBitmap, 0, 0);
+  return await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.70 });
 }
 
 // Fonction pour traiter une image sans Pixian (place l'image dans un carré blanc)
@@ -107,10 +121,10 @@ async function processWithResize(url, originalName) {
   
   console.log(`[background] Image placée dans un carré blanc de ${squareSize}x${squareSize}`);
   
-  // Conversion en blob avec qualité 90% et format forcé en JPG
+  // Conversion en blob avec qualité 70% et format forcé en JPG
   const resizedBlob = await canvas.convertToBlob({
     type: 'image/jpeg',
-    quality: 0.90 // Bonne qualité avec compression raisonnable
+    quality: 0.70 // Bonne qualité avec compression raisonnable
   });
   
   // 3. Convertit le Blob en DataURL avec format forcé en JPG
