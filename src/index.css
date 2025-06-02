@@ -167,6 +167,7 @@
     bottom: 7px;
     right: 10px;
     width: 15px;
+    min-width: 15px;
     height: 15px;
     padding: 0;
     border: none;
