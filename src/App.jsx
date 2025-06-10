@@ -22,6 +22,9 @@ const styles = `
   .resize-process {
     background-color: #2196F3;
   }
+  .shoes-process {
+    background-color: #FF9800; /* Orange pour le traitement shoes */
+  }
 `;
 import { getImages } from './services/apiService';
 // import DownloadManager from './services/imagesDownloderManager'; // plus utilisé
@@ -52,6 +55,9 @@ function App() {
   // State pour les images qui nécessitent un traitement spécial (remove bg avec Pixian)
   // Si une image n'est pas dans ce tableau mais est sélectionnée, elle sera traitée avec un simple resize
   const [processImages, setProcessImages] = useState([]);
+  
+  // State pour les images qui nécessitent un traitement spécifique pour les chaussures (marges spéciales via Pixian)
+  const [shoesProcessImages, setShoesProcessImages] = useState([]);
 
   // Fonction pour gérer le clic sur une image (sélection standard)
   const handleImageClick = (idx) => {
@@ -102,6 +108,7 @@ function App() {
       // Réinitialise les sélections
       setSelectedOrder({});
       setProcessImages([]);
+      setShoesProcessImages([]);
       
       // Réinitialise le champ file pour permettre de sélectionner le même fichier à nouveau
       event.target.value = null;
@@ -121,11 +128,12 @@ function App() {
       .map(([idx, order]) => ({
         url: images[idx].url,
         order,
-        needsProcessing: processImages.includes(Number(idx))
+        needsProcessing: processImages.includes(Number(idx)),
+        shoesProcessing: shoesProcessImages.includes(Number(idx))
       }));
     // Envoie un événement pour déclencher traitement et téléchargement en background
     document.dispatchEvent(new CustomEvent('TTO_PROCESS_AND_DOWNLOAD', { detail: { entries, folderName } }));
-    console.log('[App] Images à traiter:', entries.map(e => ({ ...e, type: e.needsProcessing ? 'Pixian' : 'Resize' })));
+    console.log('[App] Images à traiter:', entries.map(e => ({ ...e, type: e.shoesProcessing ? 'Shoes' : e.needsProcessing ? 'Pixian' : 'Resize' })));
   };
 
   // Fonction pour gérer le clic sur le bouton vert (traitement spécial avec Pixian)
@@ -138,7 +146,30 @@ function App() {
       if (prev.includes(idx)) {
         return prev.filter(i => i !== idx); // Désactive le traitement Pixian
       } else {
+        // Si l'image était en mode shoes, on la retire de ce mode
+        if (shoesProcessImages.includes(idx)) {
+          setShoesProcessImages(prev => prev.filter(i => i !== idx));
+        }
         return [...prev, idx]; // Active le traitement Pixian
+      }
+    });
+  };
+
+  // Fonction pour gérer le clic sur le bouton orange (traitement spécifique pour chaussures avec marges via Pixian)
+  const handleShoesProcessClick = (idx) => {
+    // D'abord sélectionner l'image normalement (pour l'ordre)
+    handleImageClick(idx);
+    
+    // Ensuite marquer pour traitement spécial pour chaussures
+    setShoesProcessImages(prev => {
+      if (prev.includes(idx)) {
+        return prev.filter(i => i !== idx); // Désactive le traitement shoes
+      } else {
+        // Si l'image était en mode pixian standard, on la retire de ce mode
+        if (processImages.includes(idx)) {
+          setProcessImages(prev => prev.filter(i => i !== idx));
+        }
+        return [...prev, idx]; // Active le traitement shoes
       }
     });
   };
@@ -247,19 +278,21 @@ function App() {
         <div id="imageContainer" className="image-grid">
           {images.map(({url, format, weight}, idx) => (
             <div className="image-card" key={idx}>
-              {/* Bouton vert déclenchant la sélection d'image */}
+              {/* Bouton vert déclenchant la sélection d'image avec traitement Pixian standard */}
               <button className="process-button" onClick={() => handleProcessClick(idx)}></button>
+              {/* Bouton orange déclenchant la sélection d'image avec traitement spécifique pour chaussures */}
+              <button className="process-button shoes-button" onClick={() => handleShoesProcessClick(idx)} style={{ right: '30px', backgroundColor: '#FF9800' }}></button>
               {/* L'image */}
               <img
-                className={`image-item ${selectedOrder[idx] ? 'selected-image' : ''} ${processImages.includes(idx) ? 'selected-process' : ''}`}
+                className={`image-item ${selectedOrder[idx] ? 'selected-image' : ''} ${processImages.includes(idx) ? 'selected-process' : ''} ${shoesProcessImages.includes(idx) ? 'selected-shoes' : ''}`}
                 src={url}
                 alt={`Image ${idx + 1}`}
                 onClick={() => handleImageClick(idx)}
               />
               {/* Indicateur visuel du type de traitement */}
               {selectedOrder[idx] && (
-                <div className={`processing-indicator ${processImages.includes(idx) ? 'pixian-process' : 'resize-process'}`}>
-                  {processImages.includes(idx) ? 'Détourage auto' : 'Resize + compression'}
+                <div className={`processing-indicator ${shoesProcessImages.includes(idx) ? 'shoes-process' : processImages.includes(idx) ? 'pixian-process' : 'resize-process'}`}>
+                  {shoesProcessImages.includes(idx) ? 'Détourage + Shoes marges' : processImages.includes(idx) ? 'Détourage auto' : 'Resize + compression'}
                 </div>
               )}
               {/* Détails sous l'image, superposés */}

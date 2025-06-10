@@ -223,3 +223,8 @@
 .selected-process {
     outline: 4px solid #28a745;
 }
+
+/* Outline orange pour les images marquées pour traitement shoes */
+.selected-shoes {
+    outline: 4px solid #FF9800;
+}

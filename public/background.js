@@ -51,6 +51,55 @@ async function processWithPixian(url, originalName) {
   });
 }
 
+// Fonction pour traiter une image avec Pixian spécifiquement pour les chaussures (marges spéciales)
+async function processWithPixianShoes(url, originalName) {
+  console.log('[background] Traitement Pixian Shoes pour:', url);
+  
+  // 1. Récupère l'image originale
+  const resp0 = await fetch(url);
+  let blob0 = await resp0.blob();
+  // Si format non supporté (AVIF), convertir en JPEG
+  if (blob0.type === 'image/avif' || /\.avif$/i.test(originalName)) {
+    blob0 = await convertAvifToJpeg(blob0);
+    originalName = originalName.replace(/\.avif$/i, '.jpg');
+  }
+  
+  // 2. Envoie à Pixian avec des paramètres spécifiques pour les chaussures
+  const form = new FormData();
+  form.append('image', blob0, originalName);
+  form.append('test', 'false'); // mode test, watermark gratuit
+  form.append('result.crop_to_foreground', 'true'); // crop bord à bord
+  form.append('result.margin', '10% 5% 0% 5%'); // marges spécifiques: haut droite bas gauche
+  form.append('background.color', '#ffffff'); // fond blanc
+  form.append('result.target_size', '2000 2000'); // taille maximale en px
+  form.append('output.jpeg_quality', '70'); // qualité 70%
+  
+  const headers = {
+    'Authorization': 'Basic ' + btoa(`${PIXIAN_API_ID}:${PIXIAN_API_SECRET}`)
+  };
+  
+  const resp1 = await fetch('https://api.pixian.ai/api/v2/remove-background', {
+    method: 'POST', headers, body: form
+  });
+  
+  if (!resp1.ok) throw new Error('Pixian ' + resp1.status);
+  
+  const blob1 = await resp1.blob();
+  
+  // 3. Convertit le Blob en DataURL pour chrome.downloads avec format forcé en JPG
+  return await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Force le format en JPG en remplaçant le type MIME dans le DataURL
+      const dataUrl = reader.result;
+      // S'assure que c'est bien un JPG dans le header du DataURL
+      const jpgDataUrl = dataUrl.replace(/^data:image\/[^;]+;base64,/, 'data:image/jpeg;base64,');
+      resolve(jpgDataUrl);
+    };
+    reader.readAsDataURL(blob1);
+  });
+}
+
 // Conversion AVIF → JPEG via canvas (pour compatibilité Pixian)
 async function convertAvifToJpeg(blob) {
   const imgBitmap = await createImageBitmap(blob);
@@ -254,7 +303,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { entries, folderName } = message;
     (async () => {
       for (const entry of entries) {
-        const { url, order, needsProcessing } = entry;
+        const { url, order, needsProcessing, shoesProcessing } = entry;
         // Crée le chemin complet: date + folder + order
         const date = new Date();
         const dd = String(date.getDate()).padStart(2,'0');
@@ -272,9 +321,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
           let downloadUrl;
           
-          // Choix du traitement selon needsProcessing
-          if (needsProcessing) {
-            // Traitement avec Pixian (suppression de fond)
+          // Choix du traitement selon le type (shoes, pixian standard ou resize)
+          if (shoesProcessing) {
+            // Traitement avec Pixian spécifique pour chaussures (marges spéciales)
+            downloadUrl = await processWithPixianShoes(url, originalName);
+          } else if (needsProcessing) {
+            // Traitement avec Pixian standard (suppression de fond)
             downloadUrl = await processWithPixian(url, originalName);
           } else {
             // Traitement simple avec redimensionnement
@@ -283,7 +335,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           
           // Télécharge l'image traitée
           chrome.downloads.download({ url: downloadUrl, filename }, () => {
-            console.log(`[background] Image téléchargée: ${filename} (${needsProcessing ? 'Pixian' : 'Resize'})`);
+            console.log(`[background] Image téléchargée: ${filename} (${shoesProcessing ? 'Shoes' : needsProcessing ? 'Pixian' : 'Resize'})`);
           });
           
           // Petit délai humain
