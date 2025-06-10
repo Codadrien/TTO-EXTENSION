@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'; // On importe useEffect, useState ET useRef
 import './index.css'; // On importe le CSS principal
-// Import du service d'extraction de ZIP
-import { extractImagesFromZip, releaseImageBlobUrls } from './services/zipService';
+// Import du service d'extraction de ZIP et de traitement d'images
+import { extractImagesFromZip, releaseImageBlobUrls, processImageFiles } from './services/zipService';
 
 // Style pour les indicateurs de traitement
 const styles = `
@@ -81,40 +81,49 @@ function App() {
   };
 
   /**
-   * Gère l'importation d'un fichier ZIP
-   * Cette fonction est appelée quand l'utilisateur sélectionne un fichier ZIP
+   * Gère l'importation de fichiers (images individuelles ou ZIP)
+   * Cette fonction est appelée quand l'utilisateur sélectionne des fichiers
    * @param {Event} event - L'événement de changement du champ file
    */
-  const handleZipImport = async (event) => {
-    // Récupère le fichier sélectionné
-    const file = event.target.files[0];
-    if (!file) return;
+  const handleFileImport = async (event) => {
+    // Récupère les fichiers sélectionnés
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
     
     try {
-      // Si on avait déjà des images d'un ZIP précédent, on libère leur mémoire
+      // Si on avait déjà des images importées, on libère leur mémoire
       if (imagesFromZip && images.length > 0) {
         releaseImageBlobUrls(images);
       }
       
-      // Extrait les images du ZIP (hauteur minimale de 500px)
-      const extractedImages = await extractImagesFromZip(file, 500);
+      let extractedImages = [];
       
-      // Met à jour les états avec les nouvelles images
+      // Vérifie si c'est un fichier ZIP ou des images individuelles
+      if (files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')) {
+        // Traitement d'un fichier ZIP
+        console.log('[App] Importation d\'un fichier ZIP');
+        extractedImages = await extractImagesFromZip(files[0], 500);
+      } else {
+        // Traitement d'images individuelles
+        console.log('[App] Importation de', files.length, 'images');
+        extractedImages = await processImageFiles(files, 500);
+      }
+      
       setImages(extractedImages);
       setTotalCount(extractedImages.length);
       setLargeCount(extractedImages.length); // Toutes les images extraites sont déjà filtrées
-      setImagesFromZip(true);
+      setImagesFromZip(true); // On considère toutes les images importées comme "from zip" pour la gestion de la mémoire
       
       // Réinitialise les sélections
       setSelectedOrder({});
       setProcessImages([]);
       setShoesProcessImages([]);
       
-      // Réinitialise le champ file pour permettre de sélectionner le même fichier à nouveau
+      // Réinitialise le champ file pour permettre de sélectionner les mêmes fichiers à nouveau
       event.target.value = null;
     } catch (error) {
-      console.error("Erreur lors de l'importation du ZIP:", error);
-      alert("Erreur lors de l'importation du ZIP. Vérifiez que le fichier est valide.");
+      console.error("Erreur lors de l'importation des fichiers:", error);
+      alert("Erreur lors de l'importation. Vérifiez que les fichiers sont valides.");
     }
   };
   
@@ -259,14 +268,15 @@ function App() {
               className="zip-import-button" 
               onClick={() => fileInputRef.current.click()}
             >
-              Importer un ZIP d'images
+              Importer des images
             </button>
             <input 
               type="file" 
               ref={fileInputRef} 
-              onChange={handleZipImport} 
-              accept=".zip" 
-              style={{ display: 'none' }} 
+              onChange={handleFileImport} 
+              accept=".zip,.jpg,.jpeg,.png,.gif,.webp,.avif,.svg" 
+              style={{ display: 'none' }}
+              multiple 
             />
           </div>
         </div>

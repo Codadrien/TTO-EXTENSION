@@ -162,3 +162,68 @@ export function releaseImageBlobUrls(images) {
     }
   });
 }
+
+/**
+ * Traite des fichiers images individuels
+ * @param {FileList} files - Liste des fichiers images sélectionnés
+ * @param {number} minHeight - Hauteur minimale des images à conserver (en pixels)
+ * @returns {Promise<Array<{url: string, format: string, weight: number, filename: string}>>} - Liste des images traitées
+ */
+export async function processImageFiles(files, minHeight = 500) {
+  try {
+    // Filtre les fichiers pour ne garder que les images
+    const imageFiles = Array.from(files).filter(file => isImageFile(file.name));
+    
+    console.log(`[zipService] ${imageFiles.length} images sélectionnées`);
+    
+    // Traite chaque image
+    const processedImages = await Promise.all(
+      imageFiles.map(async (file) => {
+        try {
+          // Crée une URL blob pour l'image
+          const url = createBlobUrl(file);
+          
+          // Récupère les dimensions de l'image
+          const dimensions = await getImageDimensions(url);
+          
+          // Détecte le format de l'image
+          const format = detectImageFormat(file.name);
+          
+          // Calcule le poids de l'image en Ko
+          const weight = Math.round((file.size / 1024) * 100) / 100;
+          
+          return {
+            url,
+            format,
+            weight,
+            filename: file.name,
+            dimensions
+          };
+        } catch (error) {
+          console.error(`[zipService] Erreur lors du traitement de ${file.name}:`, error);
+          return null;
+        }
+      })
+    );
+    
+    // Filtre les images nulles (en cas d'erreur) et celles trop petites
+    const validImages = processedImages
+      .filter(img => img !== null && img.dimensions.height >= minHeight)
+      // Tri par hauteur décroissante
+      .sort((a, b) => b.dimensions.height - a.dimensions.height)
+      // Transforme le format pour correspondre à l'API existante
+      .map(img => ({
+        url: img.url,
+        format: img.format,
+        weight: img.weight,
+        filename: img.filename
+      }));
+    
+    console.log(`[zipService] ${validImages.length} images valides (hauteur >= ${minHeight}px)`);
+    
+    return validImages;
+  } catch (error) {
+    console.error('[zipService] Erreur lors du traitement des images:', error);
+    throw error;
+  }
+}
