@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'; // On importe useEffect, useState ET useRef
 import './index.css'; // On importe le CSS principal
 // Import du service d'extraction de ZIP et de traitement d'images
-import { extractImagesFromZip, releaseImageBlobUrls, processImageFiles } from './services/zipService';
+import { extractImagesFromZip, releaseImageBlobUrls, processImageFiles } from './front/zipService';
 
 // Style pour les indicateurs de traitement
 const styles = `
@@ -26,7 +26,7 @@ const styles = `
     background-color: #FF9800; /* Orange pour le traitement shoes */
   }
 `;
-import { getImages } from './services/apiService';
+import { getImages } from './front/apiService';
 // import DownloadManager from './services/imagesDownloderManager'; // plus utilisé
 
 function App() {

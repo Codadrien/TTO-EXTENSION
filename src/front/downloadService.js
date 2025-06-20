@@ -1,3 +1,6 @@
+// Download service for frontend
+// Handles image download management and coordination
+
 // Classe gérant le téléchargement des images
 class DownloadManager {
     // Constantes pour la gestion des téléchargements

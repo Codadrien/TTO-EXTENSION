@@ -1,4 +1,5 @@
-// src/apiService.js
+// API service for frontend communication
+// Handles communication with content script and data retrieval
 
 /**
  * Récupère les images de la page active via le content script.
