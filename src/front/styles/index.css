@@ -228,3 +228,56 @@
 .selected-shoes {
     outline: 4px solid #FF9800;
 }
+
+/* Skeleton loading styles */
+.skeleton-image-placeholder {
+    position: relative;
+    width: 217px; /* Même largeur que les vraies images */
+    height: auto;
+    height: 217px; /* Hauteur minimum pour le placeholder */
+    background-color: #e0e0e0;
+    overflow: hidden;
+    display: block;
+}
+
+.skeleton-shimmer {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.6),
+        transparent
+    );
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* Styles pour les textes skeleton dans les détails */
+.skeleton-text {
+    background-color: #d0d0d0;
+    border-radius: 2px;
+    animation: pulse 1.5s ease-in-out infinite alternate;
+    display: inline-block;
+    color: transparent; /* Cache le texte mais garde la structure */
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.6;
+    }
+    100% {
+        opacity: 1;
+    }
+}

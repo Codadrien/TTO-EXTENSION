@@ -7,6 +7,7 @@ import ImageStats from './ImageStats';
 import ImageGrid from './ImageGrid';
 import FooterBar from './FooterBar';
 import FileInput from './FileInput';
+import SkeletonGrid from './SkeletonGrid';
 
 // Import des services
 import { extractImagesFromZip, releaseImageBlobUrls, processImageFiles } from '../services/zipService';
@@ -37,12 +38,16 @@ const styles = `
 `;
 
 function App() {
+  // Mettre à true pour forcer
+  //  le squelette, à false pour comportement normal
+  const FORCE_SKELETON = false;
   // States pour la gestion des images
   const [images, setImages] = useState([]);
   const [imageInfos, setImageInfos] = useState({});
   const [imagesFromZip, setImagesFromZip] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [largeCount, setLargeCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   // States pour la sélection et le traitement
   const [selectedOrder, setSelectedOrder] = useState({});
@@ -84,6 +89,8 @@ function App() {
     if (!files || files.length === 0) return;
     
     try {
+      setIsLoading(true); // Démarrer le loading pendant l'importation
+      
       // Si on avait déjà des images importées, on libère leur mémoire
       if (imagesFromZip && images.length > 0) {
         releaseImageBlobUrls(images);
@@ -114,6 +121,8 @@ function App() {
       console.log('[App] Images importées avec succès:', extractedImages.length);
     } catch (error) {
       console.error('[App] Erreur lors de l\'importation:', error);
+    } finally {
+      setIsLoading(false); // Arrêter le loading dans tous les cas
     }
   };
 
@@ -206,6 +215,7 @@ function App() {
       setTotalCount(newTotal);
       setLargeCount(newLarge);
       setImagesFromZip(false);
+      setIsLoading(false); // Arrêter le loading quand les images arrivent
     }
   };
 
@@ -214,6 +224,7 @@ function App() {
    */
   const loadInitialImages = async () => {
     try {
+      setIsLoading(true); // Démarrer le loading
       const data = await getImages();
       if (data && data.images) {
         setImages(data.images);
@@ -223,6 +234,8 @@ function App() {
       }
     } catch (error) {
       console.error('[App] Erreur lors du chargement initial des images:', error);
+    } finally {
+      setIsLoading(false); // Arrêter le loading dans tous les cas
     }
   };
 
@@ -292,16 +305,20 @@ function App() {
         />
         
         {/* Grille d'images */}
-        <ImageGrid
-          images={images}
-          imageInfos={imageInfos}
-          selectedOrder={selectedOrder}
-          processImages={processImages}
-          shoesProcessImages={shoesProcessImages}
-          onImageClick={handleImageClick}
-          onProcessClick={handleProcessClick}
-          onShoesProcessClick={handleShoesProcessClick}
-        />
+        {FORCE_SKELETON || isLoading ? (
+          <SkeletonGrid />
+        ) : (
+          <ImageGrid
+            images={images}
+            imageInfos={imageInfos}
+            selectedOrder={selectedOrder}
+            processImages={processImages}
+            shoesProcessImages={shoesProcessImages}
+            onImageClick={handleImageClick}
+            onProcessClick={handleProcessClick}
+            onShoesProcessClick={handleShoesProcessClick}
+          />
+        )}
       </div>
       
       {/* Barre de pied fixe */}
