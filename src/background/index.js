@@ -17,7 +17,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { entries, folderName } = message;
     (async () => {
       for (const entry of entries) {
-        const { url, order, needsProcessing, shoesProcessing } = entry;
+        const { url, order, processType } = entry;
+        
+        // Détermine le type de traitement basé sur processType
+        const needsProcessing = processType === 'pixian';
+        const shoesProcessing = processType === 'shoes';
+        
         // Crée le chemin complet: date + folder + order
         const date = new Date();
         const dd = String(date.getDate()).padStart(2,'0');

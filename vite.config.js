@@ -9,7 +9,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         content: resolve(__dirname, 'src/content/index.js'),
-        main: resolve(__dirname, 'index.html'),
+        main: resolve(__dirname, 'src/front/main.jsx'),
         background: resolve(__dirname, 'src/background/index.js')
       },
       output: {

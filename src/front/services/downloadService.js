@@ -4,10 +4,10 @@
 // Classe gérant le téléchargement des images
 class DownloadManager {
     // Constantes pour la gestion des téléchargements
-    static MAX_IMAGES_PER_SESSION = 50; // Limite le nombre d'images par session
-    static MIN_DELAY = 100; // Délai minimum entre les téléchargements
-    static MAX_DELAY = 300; // Délai maximum entre les téléchargements
-    static ERROR_DELAY = 500; // Délai en cas d'erreur
+    static get MAX_IMAGES_PER_SESSION() { return 50; } // Limite le nombre d'images par session
+    static get MIN_DELAY() { return 100; } // Délai minimum entre les téléchargements
+    static get MAX_DELAY() { return 300; } // Délai maximum entre les téléchargements
+    static get ERROR_DELAY() { return 500; } // Délai en cas d'erreur
 
     // Méthode pour obtenir la date du jour au format DD MM YYYY
     static getCurrentDate() {
