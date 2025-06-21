@@ -113,7 +113,7 @@ export async function convertAvifToJpeg(blob) {
 }
 
 // Fonction pour traiter une image sans Pixian (place l'image dans un carré blanc)
-export async function processWithResize(url, originalName) {
+export async function processWithResize(url) {
   console.log('[background] Traitement simple pour:', url);
   
   // 1. Récupère l'image originale
@@ -138,7 +138,6 @@ export async function processWithResize(url, originalName) {
   
   // Redimensionne si nécessaire pour respecter la taille maximale
   if (squareSize > MAX_SIZE) {
-    const ratio = MAX_SIZE / squareSize;
     squareSize = MAX_SIZE;
     needsResize = true;
     console.log(`[background] Redimensionnement du carré à: ${squareSize}x${squareSize}`);

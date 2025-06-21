@@ -8,7 +8,7 @@ import { collectAllUrls, filterAndEnrichImages } from './imageScraper.js';
  */
 export function registerChromeMessageListener() {
   // Toujours garder le listener Chrome pour la compatibilité
-  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'SCRAPE_IMAGES') {
       const allUrls = collectAllUrls();
       const totalCount = allUrls.length;
@@ -49,9 +49,12 @@ export function registerChromeMessageListener() {
         type: 'download',
         url: event.detail.url,
         filename: event.detail.filename
-      }, (response) => {
+      }, () => {
+        // Callback vide - aucun traitement nécessaire après l'envoi du message
       });
-    } catch (error) {
+    } catch (e) {
+      // Ignorer les erreurs de communication avec le background script
+      console.error('[contentScript] Erreur lors de l\'envoi du message de téléchargement', e);
     }
   });
 

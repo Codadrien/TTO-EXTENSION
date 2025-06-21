@@ -88,7 +88,7 @@ export function getRealFormat(url) {
         return 'unknown';
       }
     })
-    .catch(err => {
+    .catch(() => {
       return 'unknown';
     });
 }
@@ -109,7 +109,7 @@ export function getImageWeight(url) {
       const len = resp.headers.get('content-length');
       return len ? parseInt(len, 10) : null;
     })
-    .catch(err => {
+    .catch(() => {
       return null;
     });
 }

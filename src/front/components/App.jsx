@@ -249,7 +249,6 @@ function App() {
   // Effect pour mettre à jour les informations d'images
   useEffect(() => {
     const updateImageInfos = () => {
-      const newInfos = {};
       images.forEach(image => {
         if (image.url && !imageInfos[image.url]) {
           const img = new Image();
@@ -270,7 +269,7 @@ function App() {
     if (images.length > 0) {
       updateImageInfos();
     }
-  }, [images]);
+  }, [images, imageInfos]);
 
   return (
     <>

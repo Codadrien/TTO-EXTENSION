@@ -81,7 +81,13 @@ export function toggleTTO() {
 
   // Ferme le panneau
   function closePanel(container) {
-    if (window.__ttoRoot) { try { window.__ttoRoot.unmount(); } catch {} }
+    if (window.__ttoRoot) { 
+      try { 
+        window.__ttoRoot.unmount(); 
+      } catch { 
+        // Ignorer les erreurs de démontage React - peut arriver si le composant est déjà démonté
+      }
+    }
     container.style.transition = 'transform 0.20s ease-in';
     container.style.transform = 'translateX(100%)';
     container.addEventListener('transitionend', () => {
