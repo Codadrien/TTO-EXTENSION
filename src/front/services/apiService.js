@@ -44,7 +44,8 @@ export async function getImages() {
     });
 
     return result;
-  } catch (error) {
+  } catch {
+    // Ignore errors from custom event method, fallback to chrome.tabs method
   }
 
   // Méthode originale via chrome.tabs

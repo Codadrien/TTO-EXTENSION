@@ -68,9 +68,6 @@ class DownloadManager {
                 const urlObj = new URL(url);
                 const originalFilename = urlObj.pathname.split('/').pop() || `image-${i + 1}`;
                 
-                // Extrait l'extension du fichier
-                const extension = originalFilename.split('.').pop().split('?')[0] || 'jpg';
-                
                 const prefix = order > 0 ? String(order).padStart(2, '0') + '-' : '';
                 const filename = `${prefix}${originalFilename}`;
 
