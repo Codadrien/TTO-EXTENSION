@@ -132,30 +132,50 @@ export function scrapCdn(urlString, maxSize = 2000) {
 }
 
 /**
- * Filtre les URLs selon la hauteur et enrichit avec format et poids.
+ * Filtre les URLs selon les dimensions et enrichit avec format et poids.
  * @param {string[]} urls
- * @param {number} threshold
+ * @param {number} threshold - Seuil minimum pour les dimensions (défaut: 300)
+ * @param {number} areaThreshold - Seuil minimum pour l'aire totale en pixels (défaut: 150000)
  * @returns {Promise<{url:string,format:string,weight:number|null}[]>}
  */
-export async function filterAndEnrichImages(urls, threshold = 500) {
+export async function filterAndEnrichImages(urls, threshold = 300, areaThreshold = 150000) {
   const cdnUrls = urls.map(url => scrapCdn(url));
   const measures = await Promise.all(cdnUrls.map(url =>
     new Promise(resolve => {
       const img = new Image(); img.src = url;
-      img.onload = () => resolve({ url, height: img.naturalHeight });
+      img.onload = () => resolve({ 
+        url, 
+        width: img.naturalWidth, 
+        height: img.naturalHeight,
+        area: img.naturalWidth * img.naturalHeight 
+      });
       img.onerror = () => resolve(null);
     })
   ));
+  
+  // Filtrage amélioré : largeur OU hauteur > threshold ET aire > areaThreshold
   const filtered = measures
-    .filter(item => item && item.height > threshold)
-    .sort((a, b) => b.height - a.height)
+    .filter(item => {
+      if (!item) return false;
+      
+      // Au moins une dimension doit dépasser le seuil
+      const dimensionOk = item.width > threshold || item.height > threshold;
+      
+      // L'aire totale doit être suffisante (évite les images trop petites)
+      const areaOk = item.area > areaThreshold;
+      
+      // Les deux conditions doivent être remplies
+      return dimensionOk && areaOk;
+    })
+    .sort((a, b) => b.area - a.area) // Trier par aire décroissante
     .map(item => item.url);
+    
   const enriched = await Promise.all(filtered.map(async url => {
     const format = await getRealFormat(url);
     const weightBytes = await getImageWeight(url);
     const weight = weightBytes != null ? Math.round((weightBytes/1024)*100)/100 : null;
     return { url, format, weight };
   }));
-  console.log('[contentScript] Liste d\'url de plus de 500px avec metadonnée:', enriched);
+  console.log(`[contentScript] Liste d'images filtrées (seuil: ${threshold}px, aire: ${areaThreshold}px²):`, enriched);
   return enriched;
 }

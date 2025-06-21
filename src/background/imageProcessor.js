@@ -149,8 +149,10 @@ export async function processWithResize(url, originalName) {
   // Calcule les dimensions proportionnelles de l'image dans le carré
   let width, height;
   if (needsResize) {
-    width = Math.round(origWidth * (MAX_SIZE / squareSize));
-    height = Math.round(origHeight * (MAX_SIZE / squareSize));
+    // Calcul correct du ratio pour préserver les proportions
+    const ratio = MAX_SIZE / Math.max(origWidth, origHeight);
+    width = Math.round(origWidth * ratio);
+    height = Math.round(origHeight * ratio);
   } else {
     width = origWidth;
     height = origHeight;

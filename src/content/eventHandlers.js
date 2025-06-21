@@ -12,7 +12,10 @@ export function registerChromeMessageListener() {
     if (msg.type === 'SCRAPE_IMAGES') {
       const allUrls = collectAllUrls();
       const totalCount = allUrls.length;
-      filterAndEnrichImages(allUrls, msg.threshold || 500)
+      // Utiliser des seuils plus flexibles pour détecter plus d'images
+      const threshold = msg.threshold || 300; // Réduit de 500 à 300
+      const areaThreshold = msg.areaThreshold || 150000; // ~387x387px minimum
+      filterAndEnrichImages(allUrls, threshold, areaThreshold)
         .then(imagesWithFormat => {
           const largeCount = imagesWithFormat.length;
           const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
@@ -26,7 +29,8 @@ export function registerChromeMessageListener() {
   document.addEventListener('TTO_PANEL_OPENED', () => {
     const allUrls = collectAllUrls();
     const totalCount = allUrls.length;
-    filterAndEnrichImages(allUrls, 500)
+    // Seuils plus flexibles pour détecter les images avec fond blanc
+    filterAndEnrichImages(allUrls, 300, 150000)
       .then(imagesWithFormat => {
         const largeCount = imagesWithFormat.length;
         const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
@@ -69,7 +73,8 @@ export function updateImagesData() {
   if (!document.getElementById('tto-extension-container')) return;
   const allUrls = collectAllUrls();
   const totalCount = allUrls.length;
-  filterAndEnrichImages(allUrls, 500).then(imagesWithFormat => {
+  // Utiliser les nouveaux seuils plus flexibles
+  filterAndEnrichImages(allUrls, 300, 150000).then(imagesWithFormat => {
     const largeCount = imagesWithFormat.length;
     const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
     document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { detail: responsePayload }));
