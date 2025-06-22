@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import DraggableContainer from '../components/DraggableContainer';
+import { initDragHandler } from './dragHandler';
 
 /**
  * Fonction pour initialiser l'application React
@@ -18,25 +18,32 @@ export function initApp(AppComponent) {
   }
   
   // Trouver le container
-  const container = document.getElementById('tto-extension-root') || document.getElementById('root');
+  const container = document.getElementById('tto-extension-container');
   
   if (container) {
+    // Ajouter la classe CSS pour les styles du panneau sans supprimer la classe d'animation
+    // Les styles de position et animation sont gérés par panelManager.js et les CSS
+    container.classList.add('tto-panel-container');
+    
     // Créer et conserver la référence au root React
     const root = ReactDOM.createRoot(container);
     window.__ttoRoot = root;
     
-    // Rendre l'application avec le wrapper draggable
+    // Rendre l'application directement sans wrapper
     root.render(
       <React.StrictMode>
-        <DraggableContainer>
-          <AppComponent />
-        </DraggableContainer>
+        <AppComponent />
       </React.StrictMode>
     );
     
+    // Initialiser le gestionnaire de drag après le rendu
+    setTimeout(() => {
+      window.__ttoDragCleanup = initDragHandler();
+    }, 100);
+    
     console.log('Application React initialisée avec succès');
   } else {
-    console.error('Container React introuvable (tto-extension-root ou root)');
+    console.error('Container React introuvable (tto-extension-container)');
   }
 }
 
@@ -44,6 +51,16 @@ export function initApp(AppComponent) {
  * Fonction pour démonter l'application React
  */
 export function unmountApp() {
+  // Nettoyer le gestionnaire de drag
+  if (window.__ttoDragCleanup) {
+    try {
+      window.__ttoDragCleanup();
+      window.__ttoDragCleanup = null;
+    } catch (e) {
+      console.warn('Erreur lors du nettoyage du gestionnaire de drag:', e);
+    }
+  }
+  
   if (window.__ttoRoot) {
     try {
       window.__ttoRoot.unmount();

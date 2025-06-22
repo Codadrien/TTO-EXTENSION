@@ -292,39 +292,36 @@ function App() {
       {/* Input de fichier caché */}
       <FileInput ref={fileInputRef} onFileImport={handleFileImport} />
       
-      {/* Panneau principal */}
-      <div className="custom-side-panel">
-        {/* En-tête avec bouton d'importation */}
-        <Header onImportClick={handleImportClick} />
+      {/* En-tête avec bouton d'importation */}
+      <Header onImportClick={handleImportClick} />
+      
+      {/* Contenu principal */}
+      <div className="main-content">
+        {/* Statistiques des images */}
+        <ImageStats 
+          totalCount={totalCount}
+          largeCount={largeCount}
+          imagesFromZip={imagesFromZip}
+        />
         
-        {/* Contenu principal */}
-        <main className="main-content">
-          {/* Statistiques des images */}
-          <ImageStats 
-            totalCount={totalCount}
-            largeCount={largeCount}
-            imagesFromZip={imagesFromZip}
+        {/* Grille d'images */}
+        {FORCE_SKELETON || isLoading ? (
+          <SkeletonGrid />
+        ) : (
+          <ImageGrid
+            images={images}
+            imageInfos={imageInfos}
+            selectedOrder={selectedOrder}
+            processImages={processImages}
+            shoesProcessImages={shoesProcessImages}
+            onImageClick={handleImageClick}
+            onProcessClick={handleProcessClick}
+            onShoesProcessClick={handleShoesProcessClick}
           />
-          
-          {/* Grille d'images */}
-          {FORCE_SKELETON || isLoading ? (
-            <SkeletonGrid />
-          ) : (
-            <ImageGrid
-              images={images}
-              imageInfos={imageInfos}
-              selectedOrder={selectedOrder}
-              processImages={processImages}
-              shoesProcessImages={shoesProcessImages}
-              onImageClick={handleImageClick}
-              onProcessClick={handleProcessClick}
-              onShoesProcessClick={handleShoesProcessClick}
-            />
-          )}
-        </main>
+        )}
       </div>
       
-      {/* Barre de pied fixe */}
+      {/* Barre de pied intégrée */}
       <FooterBar
         folderName={folderName}
         onFolderNameChange={setFolderName}

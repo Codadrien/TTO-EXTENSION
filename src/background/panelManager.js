@@ -2,7 +2,9 @@
 
 // Fonction injectée dans la page pour toggler le panneau
 export function toggleTTO() {
-  const containerId = 'tto-extension-container';
+  // Utiliser uniquement des classes pour la cohérence
+  const containerClass = 'tto-extension-container';
+  const containerId = 'tto-extension-container'; // Garder l'ID pour la sélection
 
   // Configuration
   const PANEL_WIDTH = 515;
@@ -53,11 +55,14 @@ export function toggleTTO() {
     styleLink.href = chrome.runtime.getURL('assets/index.css');
     document.head.appendChild(styleLink);
 
+    // Créer le conteneur avec l'ID et les classes nécessaires
     const container = document.createElement('div');
     container.id = containerId;
+    container.classList.add(containerClass); // Classe pour les animations
     Object.assign(container.style, {
       position: 'fixed',
-      left: (window.innerWidth - PANEL_WIDTH) + 'px',
+      right: '0',
+      left: 'auto',
       top: '0',
       width: PANEL_WIDTH + 'px',
       height: Math.min(window.innerHeight * PANEL_HEIGHT_RATIO, MAX_PANEL_HEIGHT) + 'px',
@@ -66,36 +71,35 @@ export function toggleTTO() {
       borderRadius: '0px 0px 0px 15px',
       boxShadow: '-5px 5px 10px rgba(0, 0, 0, 0.15)',
       overflow: 'auto',
-      right: 'auto', // Important pour permettre le drag horizontal
-      maxHeight: 'none',
-      transform: 'translateX(100%)'
+      maxHeight: 'none'
       // Suppression du style inline de transition pour éviter les conflits avec le CSS
     });
 
-    const appRoot = document.createElement('div');
-    appRoot.id = 'tto-extension-root';
-    container.appendChild(appRoot);
-
-    // Placeholder de chargement
+    // Placeholder de chargement directement dans le conteneur
     const loader = document.createElement('div');
     loader.id = 'tto-loading';
     loader.textContent = 'Chargement...';
-    appRoot.appendChild(loader);
+    loader.style.cssText = 'padding: 20px; text-align: center; color: #666;';
+    container.appendChild(loader);
 
     document.body.appendChild(container);
 
     // SÉQUENCE CRITIQUE pour l'animation :
-    // 1. État initial caché (déjà défini dans les styles)
+    // 1. Appliquer explicitement l'état initial caché avant l'ajout au DOM
+    container.style.transform = 'translateX(100%)';
+    
     // 2. Ajout au DOM (fait ci-dessus)
     // 3. Forcer le navigateur à peindre l'état initial
     window.getComputedStyle(container).transform; // Force un reflow
     
-    // 4. Dans la prochaine frame, déclencher la transition
-    // Attendre un peu plus longtemps pour s'assurer que le DOM est bien peint
+    // 4. Supprimer le style inline pour laisser le CSS prendre le relais
+    container.style.transform = '';
+    
+    // 5. Dans la prochaine frame, déclencher la transition avec un délai suffisant
     setTimeout(() => {
       // Ajouter une classe pour déclencher l'animation plutôt que de modifier le style directement
       container.classList.add('tto-panel-visible');
-    }, 50);
+    }, 100); // Délai augmenté pour s'assurer que tout est bien initialisé
 
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('main.js') + '?t=' + Date.now();
@@ -127,6 +131,39 @@ export function toggleTTO() {
         console.debug('[TTO_DEBUG] Error unmounting React root:', err);
       }
     }
+    // Nouvelle logique: fermeture fluide jusqu'au bord droit, même après drag
+    // Vérifie si le panneau a été déplacé via l'attribut data-dragged ou le style left
+    const hasBeenDragged = container.getAttribute('data-dragged') === 'true';
+    const hasLeftPosition = container.style.left && container.style.left !== 'auto' && container.style.left !== '0px';
+    const isDocked = !hasBeenDragged && (!hasLeftPosition || container.style.right === '0px' || container.style.right === '0');
+
+    if (!isDocked) {
+      console.debug('[TTO_DEBUG] Panneau déplacé détecté:', { hasBeenDragged, hasLeftPosition, left: container.style.left });
+      
+      // Solution simplifiée avec transition très longue
+      container.style.transition = 'transform 2s cubic-bezier(.5,1.6,.4,1)';
+      container.style.right = 'auto';
+      
+      // Distance exagérée pour garantir la sortie complète
+      // 3000px devrait être suffisant pour tous les écrans
+      container.style.transform = 'translateX(3000px)';
+      
+      console.debug('[TTO_DEBUG] Animation de sortie simplifiée');
+
+      // Handler de fin de transition
+      const onTransformEnd = (event) => {
+        if (event.target === container && event.propertyName === 'transform') {
+          console.debug('[TTO_DEBUG] Fin de l\'animation de sortie');
+          container.removeEventListener('transitionend', onTransformEnd);
+          // Suppression effective
+          container.remove();
+          document.dispatchEvent(new CustomEvent('TTO_PANEL_CLOSED'));
+        }
+      };
+      container.addEventListener('transitionend', onTransformEnd);
+      return;
+    }
+    // Sinon: logique standard (panel docké à droite, animation CSS)
     container.classList.remove('tto-panel-visible');
     container._ttoClosing = true;
     // Nettoie l'ancien handler si besoin

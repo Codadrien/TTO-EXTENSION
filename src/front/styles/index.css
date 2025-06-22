@@ -1,28 +1,70 @@
-/* Style principal du panneau */
-.custom-side-panel {
-    width: 500px;
-    height: 100%;
+/* Style principal du panneau - appliqué directement au conteneur principal */
+.tto-panel-container {
     background: #fff;
     box-shadow: -4px 0 16px rgba(0,0,0,0.15);
-    z-index: 999999;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    /* Désactivation des animations internes pour éviter les conflits */
-    transform: none !important;
-    transition: none !important;
     background-color: #e8e8e8;
-    overflow: hidden; /* Empêche le débordement du contenu */
+    border-radius: 0px 0px 0px 15px;
+    overflow: hidden;
 }
 
 /* Classe pour l'animation du container principal */
-#tto-extension-container {
-    transform: translateX(100%); /* Position initiale hors écran */
+.tto-extension-container {
+    transform: translateX(100%);
     transition: transform 0.6s cubic-bezier(.5,1.6,.4,1);
 }
 
-#tto-extension-container.tto-panel-visible {
-    transform: translateX(0%) !important;
+.tto-extension-container.tto-panel-visible {
+    transform: translateX(0);
+}
+
+/* Header avec gestion du drag */
+.header-container {
+    cursor: move;
+    user-select: none;
+}
+
+.drag-handle {
+    cursor: move;
+    user-select: none;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Contenu principal avec défilement */
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 15px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Important pour que flex: 1 fonctionne correctement avec overflow */
+    padding-bottom: 10px; /* Espace en bas pour éviter que le contenu ne soit caché par le footer */
+}
+
+/* Footer intégré en bas du panneau */
+.footer-bar {
+    flex-shrink: 0;
+    width: 100%;
+    background-color: #fff;
+    padding: 10px 27px;
+    border-top: 1px solid #ddd;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 -2px 5px #0000001a;
+    text-align: right;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
 }
 
 .selected-image {
@@ -38,47 +80,11 @@
     padding-top: 10px;
 }
 
-/* Contenu principal avec défilement */
-.main-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 15px;
-    display: flex;
-    flex-direction: column;
-    min-height: 0; /* Important pour que flex: 1 fonctionne correctement avec overflow */
-    padding-bottom: 10px; /* Espace en bas pour éviter que le contenu ne soit caché par le footer */
-}
-
-/* Footer fixe en bas */
-.footer-bar {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    width: 500px;
-    background-color: #fff;
-    padding: 10px 27px;
-    border-top: 1px solid #ddd;
-    z-index: 999999;
-    box-sizing: border-box;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 -2px 5px #0000001a;
-    text-align: right;
-}
-
-.image-grid img {
-    max-width:217px;
-}
-
-
-
 .body-panel-tto {
     margin: 0px;
 }
 
-.body-panel-tto.is-panel-html .custom-side-panel {
+.body-panel-tto.is-panel-html .tto-panel-container {
     transform: none !important;
     transition: none !important;
 }
@@ -305,14 +311,6 @@
     }
 }
 
-/* ===== CONTAINER DRAG STYLES ===== */
-
-/* Style pour le header draggable */
-.header-container {
-  cursor: grab;
-  user-select: none;
-}
-
-.header-container:active {
-  cursor: grabbing;
+.image-grid img {
+    max-width:217px;
 }

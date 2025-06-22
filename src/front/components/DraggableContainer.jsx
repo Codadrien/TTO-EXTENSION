@@ -19,29 +19,6 @@ const DraggableContainer = ({ children }) => {
   const dragStartRef = useRef({ x: 0, y: 0 });
 
 
-  // Appliquer les styles au conteneur parent DOM et au footer
-  useEffect(() => {
-    const container = document.getElementById('tto-extension-container');
-    const footer = document.querySelector('.footer-bar');
-    
-    if (container) {
-      container.style.position = 'fixed';
-      container.style.top = `${state.y}px`;
-      container.style.left = `${state.x}px`;
-      container.style.width = `${state.width}px`;
-      container.style.height = `${state.height}px`;
-      container.style.right = 'auto';
-      container.style.maxHeight = 'none';
-      container.style.transition = state.isDragging || state.isResizing ? 'none' : '';
-      container.style.zIndex = '999999';
-      
-      // Ajuster la position du footer pour qu'il suive le panneau
-      if (footer) {
-        footer.style.right = `${window.innerWidth - state.x - state.width}px`;
-      }
-    }
-  }, [state]);
-
   // Démarrer le drag
   const startDrag = useCallback((e) => {
     // Vérifier si on clique sur le header
@@ -110,15 +87,19 @@ const DraggableContainer = ({ children }) => {
       className="draggable-container"
       onMouseDown={startDrag}
       style={{ 
-        width: '100%', 
-        height: '100%',
-        position: 'relative',
+        position: 'fixed',
+        top: `${state.y}px`,
+        left: `${state.x}px`,
+        width: `${state.width}px`,
+        height: `${state.height}px`,
+        right: 'auto',
+        maxHeight: 'none',
+        transition: state.isDragging ? 'none' : '',
+        zIndex: '999999',
         overflow: 'hidden'
       }}
     >
-      <div style={{ width: '100%', height: '100%', overflow: 'auto' }}>
-        {children}
-      </div>
+      {children}
     </div>
   );
 };
