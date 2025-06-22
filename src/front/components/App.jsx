@@ -293,32 +293,35 @@ function App() {
       <FileInput ref={fileInputRef} onFileImport={handleFileImport} />
       
       {/* Panneau principal */}
-      <div className="custom-side-panel visible">
+      <div className="custom-side-panel">
         {/* En-tête avec bouton d'importation */}
         <Header onImportClick={handleImportClick} />
         
-        {/* Statistiques des images */}
-        <ImageStats 
-          totalCount={totalCount}
-          largeCount={largeCount}
-          imagesFromZip={imagesFromZip}
-        />
-        
-        {/* Grille d'images */}
-        {FORCE_SKELETON || isLoading ? (
-          <SkeletonGrid />
-        ) : (
-          <ImageGrid
-            images={images}
-            imageInfos={imageInfos}
-            selectedOrder={selectedOrder}
-            processImages={processImages}
-            shoesProcessImages={shoesProcessImages}
-            onImageClick={handleImageClick}
-            onProcessClick={handleProcessClick}
-            onShoesProcessClick={handleShoesProcessClick}
+        {/* Contenu principal */}
+        <main className="main-content">
+          {/* Statistiques des images */}
+          <ImageStats 
+            totalCount={totalCount}
+            largeCount={largeCount}
+            imagesFromZip={imagesFromZip}
           />
-        )}
+          
+          {/* Grille d'images */}
+          {FORCE_SKELETON || isLoading ? (
+            <SkeletonGrid />
+          ) : (
+            <ImageGrid
+              images={images}
+              imageInfos={imageInfos}
+              selectedOrder={selectedOrder}
+              processImages={processImages}
+              shoesProcessImages={shoesProcessImages}
+              onImageClick={handleImageClick}
+              onProcessClick={handleProcessClick}
+              onShoesProcessClick={handleShoesProcessClick}
+            />
+          )}
+        </main>
       </div>
       
       {/* Barre de pied fixe */}

@@ -6,7 +6,7 @@ import React from 'react';
  */
 function Header({ onImportClick }) {
   return (
-    <div className="header-container">
+    <div className="header-container drag-handle">
       <div id="header-tto" className="header-tto">
         Extension Photo TTO
       </div>

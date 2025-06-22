@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import DraggableContainer from '../components/DraggableContainer';
 
 /**
  * Fonction pour initialiser l'application React
@@ -24,10 +25,12 @@ export function initApp(AppComponent) {
     const root = ReactDOM.createRoot(container);
     window.__ttoRoot = root;
     
-    // Rendre l'application
+    // Rendre l'application avec le wrapper draggable
     root.render(
       <React.StrictMode>
-        <AppComponent />
+        <DraggableContainer>
+          <AppComponent />
+        </DraggableContainer>
       </React.StrictMode>
     );
     
