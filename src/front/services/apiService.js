@@ -1,4 +1,5 @@
-// src/apiService.js
+// API service for frontend communication
+// Handles communication with content script and data retrieval
 
 /**
  * Récupère les images de la page active via le content script.
@@ -43,7 +44,8 @@ export async function getImages() {
     });
 
     return result;
-  } catch (error) {
+  } catch {
+    // Ignore errors from custom event method, fallback to chrome.tabs method
   }
 
   // Méthode originale via chrome.tabs

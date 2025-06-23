@@ -1,10 +1,11 @@
-// src/services/contentScript.js
+// Image scraping utilities for content script
+// Handles extraction and processing of images from web pages
 
 /**
  * Récupère les URLs des balises <img>.
  * @returns {string[]}
  */
-function collectImgTagUrls() {
+export function collectImgTagUrls() {
   const urls = Array.from(document.images)
     .map(img => img.currentSrc || img.src)
     .filter(Boolean);
@@ -15,7 +16,7 @@ function collectImgTagUrls() {
  * Récupère les URLs des background-image CSS.
  * @returns {string[]}
  */
-function collectCssBackgroundUrls() {
+export function collectCssBackgroundUrls() {
   const urls = Array.from(document.querySelectorAll('*'))
     .flatMap(el => {
       const bg = getComputedStyle(el).backgroundImage;
@@ -31,7 +32,7 @@ function collectCssBackgroundUrls() {
  * Récupère les URLs depuis l'attribut personnalisé backgroundimage.
  * @returns {string[]}
  */
-function collectAttrUrls() {
+export function collectAttrUrls() {
   const urls = Array.from(document.querySelectorAll('[backgroundimage]'))
     .map(el => el.getAttribute('backgroundimage'))
     .filter(Boolean);
@@ -43,7 +44,7 @@ function collectAttrUrls() {
  * Récupère toutes les URLs des images (balises, background CSS, attribut).
  * @returns {string[]}
  */
-function collectAllUrls() {
+export function collectAllUrls() {
   const imgUrls = collectImgTagUrls();
   const cssUrls = collectCssBackgroundUrls();
   const attrUrls = collectAttrUrls();
@@ -51,13 +52,12 @@ function collectAllUrls() {
   return allUrls;
 }
 
-
 /**
  * Fonction utilitaire pour détecter le format via signature binaire.
  * @param {string} url
  * @returns {Promise<string>}
  */
-function getRealFormat(url) {
+export function getRealFormat(url) {
   return fetch(url, {
     method: 'GET',
     headers: {
@@ -88,7 +88,7 @@ function getRealFormat(url) {
         return 'unknown';
       }
     })
-    .catch(err => {
+    .catch(() => {
       return 'unknown';
     });
 }
@@ -98,7 +98,7 @@ function getRealFormat(url) {
  * @param {string} url
  * @returns {Promise<number|null>}
  */
-function getImageWeight(url) {
+export function getImageWeight(url) {
   return fetch(url, { 
     method: 'HEAD', 
     headers: { 
@@ -109,7 +109,7 @@ function getImageWeight(url) {
       const len = resp.headers.get('content-length');
       return len ? parseInt(len, 10) : null;
     })
-    .catch(err => {
+    .catch(() => {
       return null;
     });
 }
@@ -134,117 +134,50 @@ export function scrapCdn(urlString, maxSize = 2000) {
 }
 
 /**
- * Filtre les URLs selon la hauteur et enrichit avec format et poids.
+ * Filtre les URLs selon les dimensions et enrichit avec format et poids.
  * @param {string[]} urls
- * @param {number} threshold
+ * @param {number} threshold - Seuil minimum pour les dimensions (défaut: 300)
+ * @param {number} areaThreshold - Seuil minimum pour l'aire totale en pixels (défaut: 150000)
  * @returns {Promise<{url:string,format:string,weight:number|null}[]>}
  */
-async function filterAndEnrichImages(urls, threshold = 500) {
-  // Appliquer scrapCdn à chaque URL pour optimiser la qualité
+export async function filterAndEnrichImages(urls, threshold = 300, areaThreshold = 150000) {
   const cdnUrls = urls.map(url => scrapCdn(url));
   const measures = await Promise.all(cdnUrls.map(url =>
     new Promise(resolve => {
       const img = new Image(); img.src = url;
-      img.onload = () => resolve({ url, height: img.naturalHeight });
+      img.onload = () => resolve({ 
+        url, 
+        width: img.naturalWidth, 
+        height: img.naturalHeight,
+        area: img.naturalWidth * img.naturalHeight 
+      });
       img.onerror = () => resolve(null);
     })
   ));
+  
+  // Filtrage amélioré : largeur OU hauteur > threshold ET aire > areaThreshold
   const filtered = measures
-    .filter(item => item && item.height > threshold)
-    .sort((a, b) => b.height - a.height)
+    .filter(item => {
+      if (!item) return false;
+      
+      // Au moins une dimension doit dépasser le seuil
+      const dimensionOk = item.width > threshold || item.height > threshold;
+      
+      // L'aire totale doit être suffisante (évite les images trop petites)
+      const areaOk = item.area > areaThreshold;
+      
+      // Les deux conditions doivent être remplies
+      return dimensionOk && areaOk;
+    })
+    .sort((a, b) => b.area - a.area) // Trier par aire décroissante
     .map(item => item.url);
+    
   const enriched = await Promise.all(filtered.map(async url => {
     const format = await getRealFormat(url);
     const weightBytes = await getImageWeight(url);
     const weight = weightBytes != null ? Math.round((weightBytes/1024)*100)/100 : null;
     return { url, format, weight };
   }));
-  console.log('[contentScript] Liste d\'url de plus de 500px avec metadonnée:', enriched);
+  console.log(`[contentScript] Liste d'images filtrées (seuil: ${threshold}px, aire: ${areaThreshold}px²):`, enriched);
   return enriched;
 }
-
-
-/**
- * Listener pour messages Chrome, répond de manière asynchrone.
- */
-function registerChromeMessageListener() {
-  // Toujours garder le listener Chrome pour la compatibilité
-  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.type === 'SCRAPE_IMAGES') {
-      const allUrls = collectAllUrls();
-      const totalCount = allUrls.length;
-      filterAndEnrichImages(allUrls, msg.threshold || 500)
-        .then(imagesWithFormat => {
-          const largeCount = imagesWithFormat.length;
-          const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
-          document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { detail: responsePayload }));
-        });
-      return true;
-    }
-  });
-  
-  // Ajouter des écouteurs pour les événements personnalisés
-  document.addEventListener('TTO_PANEL_OPENED', () => {
-    const allUrls = collectAllUrls();
-    const totalCount = allUrls.length;
-    filterAndEnrichImages(allUrls, 500)
-      .then(imagesWithFormat => {
-        const largeCount = imagesWithFormat.length;
-        const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
-        const event = new CustomEvent('TTO_IMAGES_DATA', { detail: responsePayload });
-        document.dispatchEvent(event);
-      });
-  });
-  
-  // Écouteur pour les événements de téléchargement
-  document.addEventListener('TTO_DOWNLOAD_IMAGES', (event) => {
-    if (!event.detail || !event.detail.url || !event.detail.filename) {
-      return;
-    }
-    try {
-      chrome.runtime.sendMessage({
-        type: 'download',
-        url: event.detail.url,
-        filename: event.detail.filename
-      }, (response) => {
-      });
-    } catch (error) {
-    }
-  });
-
-  // Écouteur pour lancer traitement + téléchargement depuis la page
-  document.addEventListener('TTO_PROCESS_AND_DOWNLOAD', (event) => {
-    const { entries, folderName } = event.detail || {};
-    try {
-      chrome.runtime.sendMessage({ type: 'process_and_download', entries, folderName });
-    } catch (e) {
-      console.error('[contentScript] Impossible d’envoyer process_and_download', e);
-    }
-  });
-}
-
-/**
- * Analyse les images de la page et envoie les résultats à l'UI React
- */
-function updateImagesData() {
-  if (!document.getElementById('tto-extension-container')) return;
-  const allUrls = collectAllUrls();
-  const totalCount = allUrls.length;
-  filterAndEnrichImages(allUrls, 500).then(imagesWithFormat => {
-    const largeCount = imagesWithFormat.length;
-    const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
-    document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { detail: responsePayload }));
-  });
-}
-
-// Ajouter un écouteur pour les clics sur la page
-let debounceTimer = null;
-document.addEventListener('click', () => {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    updateImagesData();
-  }, 300); // Attendre 300ms après le dernier clic
-}, { passive: true });
-
-// Initialisation du listener
-registerChromeMessageListener();

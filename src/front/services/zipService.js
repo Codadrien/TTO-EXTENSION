@@ -1,9 +1,5 @@
-// src/services/zipService.js
-
-/**
- * Service pour extraire et traiter les images depuis un fichier ZIP
- * Ce service utilise JSZip pour extraire les fichiers et créer des URLs blob
- */
+// ZIP service for frontend
+// Handles ZIP file processing and image extraction
 
 import JSZip from 'jszip';
 
