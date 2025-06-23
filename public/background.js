@@ -69,7 +69,8 @@ async function processWithPixianShoes(url, originalName) {
   form.append('image', blob0, originalName);
   form.append('test', 'false'); // mode test, watermark gratuit
   form.append('result.crop_to_foreground', 'true'); // crop bord à bord
-  form.append('result.margin', '10% 5% 0% 5%'); // marges spécifiques: haut droite bas gauche
+  form.append('result.vertical_alignment', 'bottom');
+  form.append('result.margin', '0% 8% 26% 8%'); // marges spécifiques: haut droite bas gauche
   form.append('background.color', '#ffffff'); // fond blanc
   form.append('result.target_size', '2000 2000'); // taille maximale en px
   form.append('output.jpeg_quality', '70'); // qualité 70%
