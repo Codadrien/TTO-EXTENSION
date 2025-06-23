@@ -125,9 +125,11 @@ export function scrapCdn(urlString, maxSize = 2000) {
   // Remplace les dimensions de type `w_123` et `h_123` (Cloudinary, etc.)
   newUrl = newUrl.replace(/w_(\d+)/gi, `w_${maxSize}`);
   newUrl = newUrl.replace(/h_(\d+)/gi, `h_${maxSize}`);
-  // Remplace les paramètres de requête style `width=123`, `height=123`, `wid=123`, `hei=123`, `w=123`, `h=123`
-  newUrl = newUrl.replace(/([?&])(width|w|wid)=\d+/gi, `$1$2=${maxSize}`);
-  newUrl = newUrl.replace(/([?&])(height|h|hei)=\d+/gi, `$1$2=${maxSize}`);
+  // Remplace les paramètres de requête style `width=123`, `height=123`, `wid=123`, `hei=123`, `w=123`, `h=123`, `sw=123`, `sh=123`
+  newUrl = newUrl.replace(/(\b(?:width|wid|w)=)(\d+)/gi, `$1${maxSize}`);
+  newUrl = newUrl.replace(/(\b(?:height|hei|h)=)(\d+)/gi, `$1${maxSize}`);
+  newUrl = newUrl.replace(/(\bsw=)(\d+)/gi, `$1${maxSize}`); // Remplace `sw` (largeur)
+  newUrl = newUrl.replace(/(\bsh=)(\d+)/gi, `$1${maxSize}`); // Remplace `sh` (hauteur)
   return newUrl;
 }
 
