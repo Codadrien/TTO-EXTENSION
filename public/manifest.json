@@ -1,25 +1,26 @@
 {
   "manifest_version": 3,
-  "name": "Extension React Vite",
+  "name": "Extension Photo TTO",
   "version": "1.0.0",
-  "description": "Extension Chrome avec React et Vite",
+  "description": "Extension Photo TTO",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Extension React Vite"
+    "default_title": "Extension Photo TTO"
   },
-  "permissions": ["activeTab", "scripting", "downloads"],
+  "permissions": ["activeTab", "scripting", "downloads", "notifications"],
   "host_permissions": ["<all_urls>"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background/index.js",
+    "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["contentScript.js"],
+      "js": ["src/content/index.js"],
       "run_at": "document_idle"
     }
   ],

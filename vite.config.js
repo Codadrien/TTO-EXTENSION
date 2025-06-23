@@ -8,12 +8,14 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        content: resolve(__dirname, 'src/services/contentScript.js'),
-        main: resolve(__dirname, 'index.html')
+        content: resolve(__dirname, 'src/content/index.js'),
+        main: resolve(__dirname, 'src/front/main.jsx'),
+        background: resolve(__dirname, 'src/background/index.js')
       },
       output: {
         entryFileNames: assetInfo => {
-          if (assetInfo.name === 'content') return 'contentScript.js';
+          if (assetInfo.name === 'content') return 'src/content/index.js';
+          if (assetInfo.name === 'background') return 'src/background/index.js';
           return '[name].js';
         },
         // Génère un CSS sans hash pour charger un nom fixe index.css
