@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { entries, folderName } = message;
     (async () => {
       for (const entry of entries) {
-        const { url, order, processType } = entry;
+        const { url, order, processType, productType = 'default' } = entry;
         
         // Détermine le type de traitement basé sur processType
         const needsProcessing = processType === 'pixian';
@@ -45,8 +45,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // Traitement avec Pixian spécifique pour chaussures (marges spéciales)
             downloadUrl = await processWithPixianShoes(url, originalName);
           } else if (needsProcessing) {
-            // Traitement avec Pixian standard (suppression de fond)
-            downloadUrl = await processWithPixian(url, originalName);
+            // Traitement avec Pixian standard (suppression de fond) avec le type de produit
+            downloadUrl = await processWithPixian(url, originalName, productType);
           } else {
             // Traitement simple avec redimensionnement
             downloadUrl = await processWithResize(url, originalName);

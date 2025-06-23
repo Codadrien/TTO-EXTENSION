@@ -6,8 +6,8 @@ const PIXIAN_API_ID = import.meta.env.VITE_PIXIAN_API_ID;
 const PIXIAN_API_SECRET = import.meta.env.VITE_PIXIAN_API_SECRET;
 
 // Fonction pour traiter une image avec Pixian (suppression de fond)
-export async function processWithPixian(url, originalName) {
-  console.log('[background] Traitement Pixian pour:', url);
+export async function processWithPixian(url, originalName, productType = 'default') {
+  console.log('[background] Traitement Pixian pour:', url, 'Type de produit:', productType);
   
   // 1. Récupère l'image originale
   const resp0 = await fetch(url);
@@ -23,7 +23,28 @@ export async function processWithPixian(url, originalName) {
   form.append('image', blob0, originalName);
   form.append('test', 'false'); // mode test, watermark gratuit
   form.append('result.crop_to_foreground', 'true'); // crop bord à bord
-  form.append('result.margin', '5%'); // ajoute une marge de 5%
+  
+  // Définition des marges selon le type de produit
+  let margin;
+  switch (productType) {
+    case 'textile':
+      margin = '8.5%'; // Marge spécifique pour textile
+      console.log('[background] Traitement avec marge pour textile:', margin);
+      break;
+    case 'pantalon':
+      margin = '3.2%'; // Marge spécifique pour pantalon (haut droite bas gauche)
+      console.log('[background] Traitement avec marge pour pantalon:', margin);
+      break;
+    case 'accessoires':
+      margin = '16%'; // Marge spécifique pour accessoires
+      console.log('[background] Traitement avec marge pour accessoires:', margin);
+      break;
+    default:
+      margin = '5%'; // Marge par défaut
+      console.log('[background] Traitement avec marge par défaut:', margin);
+  }
+  
+  form.append('result.margin', margin);
   form.append('background.color', '#ffffff'); // fond blanc
   form.append('result.target_size', '2000 2000'); // taille maximale en px
   form.append('output.jpeg_quality', '70'); // qualité 70%

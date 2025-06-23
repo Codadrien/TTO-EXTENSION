@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import '../styles/index.css';
+import '../styles/ProductTypeSelector.css';
 
 // Import des composants modulaires
 import Header from './Header';
 import ImageStats from './ImageStats';
 import ImageGrid from './ImageGrid';
+import ProductTypeSelector from './ProductTypeSelector';
 import FooterBar from './FooterBar';
 import FileInput from './FileInput';
 import SkeletonGrid from './SkeletonGrid';
@@ -56,6 +58,9 @@ function App() {
 
   // State pour le nom du dossier
   const [folderName, setFolderName] = useState('');
+  
+  // State pour le type de produit sélectionné
+  const [productType, setProductType] = useState('default');
 
   // Référence pour l'input file
   const fileInputRef = useRef(null);
@@ -130,40 +135,55 @@ function App() {
    * Fonction pour télécharger et traiter les images via le background
    */
   const handleDownload = () => {
-    const selectedImages = Object.keys(selectedOrder).map(Number);
-    if (selectedImages.length === 0) {
+    // Récupère les indices des images sélectionnées dans l'ordre
+    const selectedIndices = Object.entries(selectedOrder)
+      .sort((a, b) => a[1] - b[1])
+      .map(([idx]) => Number(idx));
+    
+    if (selectedIndices.length === 0) {
       alert('Veuillez sélectionner au moins une image');
       return;
     }
-
-    console.log('[App] Début du téléchargement de', selectedImages.length, 'images');
+    
+    console.log('[App] Début du téléchargement de', selectedIndices.length, 'images avec productType:', productType);
     
     // Prépare les données pour le téléchargement
-    const entries = selectedImages.map(idx => ({
+    const entries = selectedIndices.map(idx => ({
       ...images[idx],
-      processType: shoesProcessImages.includes(idx) ? 'shoes' : 
-                  processImages.includes(idx) ? 'pixian' : 'resize',
+      processType: processImages.includes(idx) ? 'pixian' : 
+                   shoesProcessImages.includes(idx) ? 'shoes' : 'resize',
+      productType: processImages.includes(idx) ? productType : 'default',
       order: selectedOrder[idx]
     }));
-
-    // Envoie l'événement au content script qui relayera au background
-    const event = new CustomEvent('TTO_PROCESS_AND_DOWNLOAD', {
-      detail: {
-        entries: entries,
-        folderName: folderName || 'TTO-Images'
-      }
-    });
-    document.dispatchEvent(event);
+    
+    console.log('[App] Données préparées pour le téléchargement:', entries);
+    
+    // Utilisation exclusive de la méthode CustomEvent pour éviter le double traitement
+    // Cette méthode est plus fiable car elle ne dépend pas de l'API chrome.runtime
+    try {
+      const event = new CustomEvent('TTO_PROCESS_AND_DOWNLOAD', {
+        detail: {
+          entries: entries,
+          folderName: folderName || 'TTO_Images'
+        }
+      });
+      document.dispatchEvent(event);
+      console.log('[App] Événement TTO_PROCESS_AND_DOWNLOAD dispatché');
+    } catch (error) {
+      console.error('[App] Erreur lors du dispatch de l\'événement:', error);
+    }
   };
 
   /**
    * Fonction pour gérer le clic sur le bouton vert (traitement Pixian standard)
    */
   const handleProcessClick = (idx) => {
+    console.log('[App] Traitement Pixian pour image', idx, 'avec type de produit:', productType);
     setProcessImages(prev => {
-      const newProcessImages = prev.includes(idx) 
-        ? prev.filter(i => i !== idx)
-        : [...prev, idx];
+      const newProcessImages = [...prev];
+      if (!newProcessImages.includes(idx)) {
+        newProcessImages.push(idx);
+      }
       return newProcessImages;
     });
     
@@ -302,6 +322,12 @@ function App() {
           totalCount={totalCount}
           largeCount={largeCount}
           imagesFromZip={imagesFromZip}
+        />
+        
+        {/* Sélecteur de type de produit */}
+        <ProductTypeSelector 
+          selectedType={productType}
+          onTypeChange={setProductType}
         />
         
         {/* Grille d'images */}
