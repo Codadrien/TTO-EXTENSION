@@ -160,54 +160,164 @@ export async function processWithShadowPreservation(url, originalName) {
   
   console.log(`[background] Dimensions originales: ${origWidth}x${origHeight}`);
   
+  // 3. Détection des bords réels de l'objet (chaussure)
+  // Créer un canvas temporaire pour analyser l'image
+  const tempCanvas = new OffscreenCanvas(origWidth, origHeight);
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.drawImage(img, 0, 0);
+  
+  // Récupérer les données de pixels
+  const imageData = tempCtx.getImageData(0, 0, origWidth, origHeight);
+  const data = imageData.data;
+  
+  // Initialiser les limites
+  let minX = origWidth;
+  let minY = origHeight;
+  let maxX = 0;
+  let maxY = 0;
+  
+  // Stratégie de détection plus précise: parcourir depuis les bords vers le centre
+  // Pour détecter le bas avec précision (important pour l'alignement)
+  
+  // Seuil de détection plus strict pour les pixels significatifs
+  const ALPHA_THRESHOLD = 5;  // Détecter même les pixels légèrement opaques
+  const COLOR_THRESHOLD = 245; // Seuil plus élevé pour détecter même les pixels presque blancs
+  
+  // 1. Détection du bas (de bas en haut)
+  maxY = 0;
+  for (let y = origHeight - 1; y >= 0; y--) {
+    let rowHasContent = false;
+    for (let x = 0; x < origWidth; x++) {
+      const idx = (y * origWidth + x) * 4;
+      const alpha = data[idx + 3];
+      // Détection très sensible pour le bas
+      if (alpha > ALPHA_THRESHOLD) {
+        maxY = y;
+        rowHasContent = true;
+        break;
+      }
+    }
+    if (rowHasContent) break;
+  }
+  
+  // 2. Détection du haut (de haut en bas)
+  minY = origHeight;
+  for (let y = 0; y < origHeight; y++) {
+    let rowHasContent = false;
+    for (let x = 0; x < origWidth; x++) {
+      const idx = (y * origWidth + x) * 4;
+      const alpha = data[idx + 3];
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      // Pour le haut, on veut des pixels plus significatifs (pas juste légèrement transparents)
+      if (alpha > ALPHA_THRESHOLD && (r < COLOR_THRESHOLD || g < COLOR_THRESHOLD || b < COLOR_THRESHOLD)) {
+        minY = y;
+        rowHasContent = true;
+        break;
+      }
+    }
+    if (rowHasContent) break;
+  }
+  
+  // 3. Détection de la gauche (de gauche à droite)
+  minX = origWidth;
+  for (let x = 0; x < origWidth; x++) {
+    let colHasContent = false;
+    for (let y = 0; y < origHeight; y++) {
+      const idx = (y * origWidth + x) * 4;
+      const alpha = data[idx + 3];
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      if (alpha > ALPHA_THRESHOLD && (r < COLOR_THRESHOLD || g < COLOR_THRESHOLD || b < COLOR_THRESHOLD)) {
+        minX = x;
+        colHasContent = true;
+        break;
+      }
+    }
+    if (colHasContent) break;
+  }
+  
+  // 4. Détection de la droite (de droite à gauche)
+  maxX = 0;
+  for (let x = origWidth - 1; x >= 0; x--) {
+    let colHasContent = false;
+    for (let y = 0; y < origHeight; y++) {
+      const idx = (y * origWidth + x) * 4;
+      const alpha = data[idx + 3];
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      if (alpha > ALPHA_THRESHOLD && (r < COLOR_THRESHOLD || g < COLOR_THRESHOLD || b < COLOR_THRESHOLD)) {
+        maxX = x;
+        colHasContent = true;
+        break;
+      }
+    }
+    if (colHasContent) break;
+  }
+  
+  // S'assurer que nous avons détecté quelque chose
+  if (minX > maxX || minY > maxY) {
+    // Si aucun pixel significatif n'est trouvé, utiliser l'image entière
+    minX = 0;
+    minY = 0;
+    maxX = origWidth - 1;
+    maxY = origHeight - 1;
+  }
+  
+  // Calculer les dimensions de l'objet détecté
+  const objectWidth = maxX - minX + 1;
+  const objectHeight = maxY - minY + 1;
+  const objectRatio = objectWidth / objectHeight;
+  
+  console.log(`[background] Objet détecté: ${objectWidth}x${objectHeight} aux coordonnées (${minX},${minY})-(${maxX},${maxY})`);
+  
   // Définition des marges en pourcentage (identiques à celles de processWithPixianShoes)
-  // Marges: haut droite bas gauche = 0% 8% 26% 8%
+  // Marges: haut droite bas gauche = 0% 7% 24% 7%
   const marginTop = 0;
   const marginRight = 0.07;
   const marginBottom = 0.24;
   const marginLeft = 0.07;
   
   // Calcul des dimensions finales avec les marges
-  // On calcule d'abord la taille de l'image sans les marges
-  const imageRatio = origWidth / origHeight;
-  
-  // Calcul de la largeur et hauteur maximales disponibles après application des marges
   const availableWidthRatio = 1 - (marginLeft + marginRight);
   const availableHeightRatio = 1 - (marginTop + marginBottom);
   
   // Détermination de la dimension contraignante (largeur ou hauteur)
-  let finalWidth, finalHeight;
+  let finalObjectWidth, finalObjectHeight;
   
-  // Si le ratio de l'image est plus grand que le ratio de l'espace disponible,
+  // Si le ratio de l'objet est plus grand que le ratio de l'espace disponible,
   // alors la largeur est contraignante
-  const availableRatio = (availableWidthRatio / availableHeightRatio) * imageRatio;
+  const availableRatio = (availableWidthRatio / availableHeightRatio) * objectRatio;
   
   if (availableRatio > 1) {
     // La largeur est contraignante
-    finalWidth = Math.min(MAX_SIZE * availableWidthRatio, origWidth);
-    finalHeight = finalWidth / imageRatio;
+    finalObjectWidth = Math.min(MAX_SIZE * availableWidthRatio, objectWidth);
+    finalObjectHeight = finalObjectWidth / objectRatio;
   } else {
     // La hauteur est contraignante
-    finalHeight = Math.min(MAX_SIZE * availableHeightRatio, origHeight);
-    finalWidth = finalHeight * imageRatio;
+    finalObjectHeight = Math.min(MAX_SIZE * availableHeightRatio, objectHeight);
+    finalObjectWidth = finalObjectHeight * objectRatio;
   }
   
   // Créer un canvas carré pour le résultat final
-  // Calculer la taille du carré en fonction des marges et des dimensions de l'image
+  // Calculer la taille du carré en fonction des marges et des dimensions de l'objet
   const maxDimWithMargin = Math.max(
-    finalWidth / availableWidthRatio,
-    finalHeight / availableHeightRatio
+    finalObjectWidth / availableWidthRatio,
+    finalObjectHeight / availableHeightRatio
   );
   
   // Assurer que la taille finale ne dépasse pas MAX_SIZE
   const squareSize = Math.min(MAX_SIZE, Math.ceil(maxDimWithMargin));
   
   // Arrondir les dimensions
-  finalWidth = Math.round(finalWidth);
-  finalHeight = Math.round(finalHeight);
+  finalObjectWidth = Math.round(finalObjectWidth);
+  finalObjectHeight = Math.round(finalObjectHeight);
   
   console.log(`[background] Taille du carré final: ${squareSize}x${squareSize}`);
-  console.log(`[background] Dimensions finales de l'image: ${finalWidth}x${finalHeight}`);
+  console.log(`[background] Dimensions finales de l'objet: ${finalObjectWidth}x${finalObjectHeight}`);
   
   // Création du canvas carré
   const canvas = new OffscreenCanvas(squareSize, squareSize);
@@ -217,26 +327,34 @@ export async function processWithShadowPreservation(url, originalName) {
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, squareSize, squareSize);
   
-  // Calcul de la position pour placer l'image avec les marges spécifiées
-  // Centrer horizontalement avec 8% de marge de chaque côté
+  // Calcul de la position pour placer l'objet avec les marges spécifiées
+  // Centrer horizontalement avec 7% de marge de chaque côté
   const availableWidth = squareSize * (1 - marginLeft - marginRight); // Largeur disponible après marges
   
-  // Si l'image est plus petite que l'espace disponible, on la centre
+  // Calculer le facteur d'échelle pour l'objet détecté
+  const scale = finalObjectWidth / objectWidth;
+  
+  // Si l'objet est plus petit que l'espace disponible, on le centre
   let x;
-  if (finalWidth < availableWidth) {
+  if (finalObjectWidth < availableWidth) {
     // Centrer horizontalement dans l'espace disponible
-    x = Math.round(squareSize * marginLeft + (availableWidth - finalWidth) / 2);
+    x = Math.round(squareSize * marginLeft + (availableWidth - finalObjectWidth) / 2);
   } else {
     // Sinon, on applique simplement la marge gauche
     x = Math.round(squareSize * marginLeft);
   }
   
-  // Positionner verticalement avec 26% de marge en bas
-  // On calcule la position Y pour que le bas de l'image soit à (1 - marginBottom) * squareSize
-  const y = Math.round((1 - marginBottom) * squareSize - finalHeight);
+  // Positionner verticalement avec 24% de marge en bas
+  // On calcule la position Y pour que le bas de l'objet soit à (1 - marginBottom) * squareSize
+  const y = Math.round((1 - marginBottom) * squareSize - finalObjectHeight);
   
-  // Dessin de l'image avec les marges calculées
-  ctx.drawImage(img, x, y, finalWidth, finalHeight);
+  // Calculer les coordonnées de l'objet dans l'image originale, ajustées selon l'échelle
+  // Dessiner uniquement la partie de l'image qui contient l'objet détecté
+  ctx.drawImage(
+    img,
+    minX, minY, objectWidth, objectHeight,  // Source: coordonnées de l'objet détecté
+    x, y, finalObjectWidth, finalObjectHeight  // Destination: position et taille dans le canvas final
+  );
   
   // Conversion en blob avec qualité 70% et format forcé en JPG
   const processedBlob = await canvas.convertToBlob({
