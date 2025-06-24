@@ -1,4 +1,5 @@
 import React from 'react';
+import '../styles/ProcessButtons.css';
 
 /**
  * Composant SkeletonGrid - Affiche des placeholders qui reproduisent exactement les ImageCard
@@ -10,14 +11,27 @@ function SkeletonGrid({ count = 6 }) {
     <div className="image-grid">
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="image-card">
-          {/* Bouton vert (même position que dans ImageCard) */}
-          <button className="process-button"></button>
-          
-          {/* Bouton orange (même position que dans ImageCard) */}
-          <button 
-            className="process-button shoes-button" 
-            style={{ right: '30px', backgroundColor: '#FF9800' }}
-          ></button>
+          {/* Conteneur des boutons de traitement en colonne */}
+          <div className="process-buttons-column">
+            <div className="process-buttons-container">
+              {/* Bouton vert pour traitement standard */}
+              <button className="process-button" title="Traitement standard"></button>
+              
+              {/* Bouton orange pour traitement chaussures */}
+              <button 
+                className="process-button shoes-button" 
+                style={{ backgroundColor: '#FF9800' }}
+                title="Traitement chaussures"
+              ></button>
+              
+              {/* Bouton violet pour traitement avec ombre */}
+              <button 
+                className="process-button shadow-button" 
+                style={{ backgroundColor: '#9C27B0' }}
+                title="Conserver l'ombre"
+              ></button>
+            </div>
+          </div>
           
           {/* Image placeholder avec animation */}
           <div className="skeleton-image-placeholder">
