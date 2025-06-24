@@ -1,0 +1,30 @@
+/* Styles pour le conteneur des boutons de traitement */
+.process-buttons-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Styles spécifiques pour les boutons dans le composant ProcessButtons */
+.process-buttons-container .process-button {
+  position: static; /* Annule la position absolute du style global */
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border: 2px solid white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.process-buttons-container .process-button:hover {
+  transform: scale(1.1);
+}
+
+/* Styles pour les différents types de boutons */
+.process-buttons-container .shoes-button {
+  background-color: #FF9800; /* Orange */
+}
+
+.process-buttons-container .shadow-button {
+  background-color: #9C27B0; /* Violet */
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import ProcessButtons from './ProcessButtons';
 
 /**
  * Composant ImageCard - Représente une carte d'image avec ses boutons et informations
@@ -51,26 +52,14 @@ function ImageCard({
 
   return (
     <div className="image-card">
-      {/* Bouton vert déclenchant la sélection d'image avec traitement Pixian standard */}
-      <button 
-        className="process-button" 
-        onClick={() => onProcessClick(idx)}
-      ></button>
-      
-      {/* Bouton orange déclenchant la sélection d'image avec traitement spécifique pour chaussures */}
-      <button 
-        className="process-button shoes-button" 
-        onClick={() => onShoesProcessClick(idx)} 
-        style={{ right: '30px', backgroundColor: '#FF9800' }}
-      ></button>
-      
-      {/* Bouton violet déclenchant la sélection d'image avec préservation d'ombre */}
-      <button 
-        className="process-button shadow-button" 
-        onClick={() => onShadowProcessClick(idx)} 
-        style={{ right: '55px', backgroundColor: '#9C27B0' }}
-        title="Conserver l'ombre"
-      ></button>
+      {/* Composant de boutons de traitement en colonne */}
+      <div className="process-buttons-column">
+        <ProcessButtons 
+          onProcessClick={() => onProcessClick(idx)}
+          onShoesProcessClick={() => onShoesProcessClick(idx)}
+          onShadowProcessClick={() => onShadowProcessClick(idx)}
+        />
+      </div>
       
       {/* L'image */}
       <img

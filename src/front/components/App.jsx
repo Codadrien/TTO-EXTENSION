@@ -20,7 +20,7 @@ const styles = `
   .processing-indicator {
     position: absolute;
     bottom: 30px;
-    right: 5px;
+    left: 5px;
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 10px;

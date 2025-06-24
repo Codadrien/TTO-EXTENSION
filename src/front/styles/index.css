@@ -248,6 +248,16 @@
     z-index: 1000;
 }
 
+/* Styles pour le conteneur des boutons de traitement en colonne */
+.process-buttons-column {
+    position: absolute;
+    bottom: 30px;
+    right: 10px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
 /* Outline vert pour les images marquées pour traitement */
 .selected-process {
     outline: 4px solid #28a745;
