@@ -2,6 +2,7 @@
 // Manages Chrome extension messaging and DOM events
 
 import { collectAllUrls, filterAndEnrichImages } from './imageScraper.js';
+import overlayManager from './overlayManager.js';
 
 /**
  * Listener pour messages Chrome, répond de manière asynchrone.
@@ -66,6 +67,33 @@ export function registerChromeMessageListener() {
     } catch (e) {
       console.error('[contentScript] Impossible d\'envoyer process_and_download', e);
     }
+  });
+
+  // Écouteur pour activer l'overlay de prévisualisation
+  document.addEventListener('TTO_ACTIVATE_OVERLAY', (event) => {
+    const { imageUrl } = event.detail || {};
+    if (imageUrl) {
+      console.log('[eventHandlers] Activation de l\'overlay avec image:', imageUrl);
+      overlayManager.activateOverlay(imageUrl);
+    }
+  });
+
+  // Écouteur pour désactiver l'overlay
+  document.addEventListener('TTO_DEACTIVATE_OVERLAY', () => {
+    console.log('[eventHandlers] Désactivation de l\'overlay');
+    overlayManager.deactivateOverlay();
+  });
+
+  // Écouteur pour les mises à jour de marges en temps réel
+  document.addEventListener('TTO_MARGINS_UPDATED', (event) => {
+    const { margins } = event.detail || {};
+    console.log('[eventHandlers] Marges mises à jour:', margins);
+    
+    // Envoyer les marges mises à jour vers l'interface React
+    const customEvent = new CustomEvent('TTO_OVERLAY_MARGINS_UPDATED', {
+      detail: { margins }
+    });
+    document.dispatchEvent(customEvent);
   });
 }
 

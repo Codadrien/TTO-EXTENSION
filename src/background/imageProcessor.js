@@ -135,7 +135,9 @@ export async function convertAvifToJpeg(blob) {
 }
 
 // Fonction pour traiter une image de chaussure en conservant l'ombre et en appliquant des marges
-export async function processWithShadowPreservation(url, originalName) {
+// Les marges sont exprimées en pourcentage (0-1)
+// customMargins = { horizontal, vertical, width } ou { top, right, bottom, left }
+export async function processWithShadowPreservation(url, originalName, customMargins = null) {
   console.log('[background] Traitement avec préservation d\'ombre pour:', url);
   
   // 1. Récupère l'image originale
@@ -274,12 +276,56 @@ export async function processWithShadowPreservation(url, originalName) {
   
   console.log(`[background] Objet détecté: ${objectWidth}x${objectHeight} aux coordonnées (${minX},${minY})-(${maxX},${maxY})`);
   
-  // Définition des marges en pourcentage (identiques à celles de processWithPixianShoes)
-  // Marges: haut droite bas gauche = 0% 7% 24% 7%
-  const marginTop = 0;
-  const marginRight = 0.07;
-  const marginBottom = 0.24;
-  const marginLeft = 0.07;
+  // Définition des marges en pourcentage
+  // Valeurs par défaut: haut droite bas gauche = 0% 7% 24% 7%
+  let marginTop = 0;
+  let marginRight = 0.07;
+  let marginBottom = 0.24;
+  let marginLeft = 0.07;
+  
+  // Utiliser les marges personnalisées si elles sont fournies
+  if (customMargins) {
+    console.log('[background] Utilisation de marges personnalisées:', customMargins);
+    
+    // Si les marges sont fournies au format {top, right, bottom, left}
+    if (customMargins.top !== undefined) {
+      marginTop = customMargins.top;
+      marginRight = customMargins.right;
+      marginBottom = customMargins.bottom;
+      marginLeft = customMargins.left;
+    }
+    // Si les marges sont fournies au format {horizontal, vertical, width}
+    else if (customMargins.horizontal !== undefined) {
+      // Conversion des valeurs de l'interface vers les marges finales
+      // horizontal: valeur entre -50 et +50 (pourcentage)
+      // vertical: valeur entre -50 et +50 (pourcentage)
+      // width: valeur entre 50 et 150 (pourcentage)
+      
+      // Calcul des marges latérales basées sur la largeur
+      // Si width = 100%, pas de marges latérales
+      // Si width = 80%, 10% de marge de chaque côté
+      const sideMargin = customMargins.sideMargin || (100 - (customMargins.width || 100)) / 2 / 100;
+      
+      // Conversion des valeurs horizontales (-50 à +50) en marges gauche/droite
+      // Une valeur positive décale vers la droite (augmente la marge gauche)
+      const horizontalShift = (customMargins.horizontal || 0) / 100;
+      
+      // Marges latérales de base + décalage horizontal
+      marginLeft = Math.max(0, Math.min(0.5, sideMargin + horizontalShift));
+      marginRight = Math.max(0, Math.min(0.5, sideMargin - horizontalShift));
+      
+      // Conversion des valeurs verticales (-50 à +50) en marges haut/bas
+      // Une valeur positive décale vers le bas (augmente la marge supérieure)
+      const verticalShift = (customMargins.vertical || 0) / 100;
+      
+      // Par défaut, on garde 0% en haut et 24% en bas
+      // On ajuste ces valeurs en fonction du décalage vertical
+      marginTop = Math.max(0, Math.min(0.5, 0 + verticalShift));
+      marginBottom = Math.max(0, Math.min(0.5, 0.24 - verticalShift));
+    }
+    
+    console.log(`[background] Marges appliquées: haut=${marginTop*100}%, droite=${marginRight*100}%, bas=${marginBottom*100}%, gauche=${marginLeft*100}%`);
+  }
   
   // Calcul des dimensions finales avec les marges
   const availableWidthRatio = 1 - (marginLeft + marginRight);

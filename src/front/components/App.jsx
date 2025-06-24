@@ -71,6 +71,9 @@ function App() {
   // State pour le type de produit sélectionné
   const [productType, setProductType] = useState('default');
 
+  // State pour les marges validées de l'overlay
+  const [validatedMargins, setValidatedMargins] = useState(null);
+
   // Référence pour l'input file
   const fileInputRef = useRef(null);
 
@@ -230,23 +233,95 @@ function App() {
   
   /**
    * Fonction pour gérer le clic sur le bouton violet (traitement avec préservation d'ombre)
+   * Déclenche maintenant l'overlay de prévisualisation au lieu du traitement immédiat
    */
-  const handleShadowProcessClick = (idx) => {
-    setShadowProcessImages(prev => {
-      const newShadowImages = prev.includes(idx) 
-        ? prev.filter(i => i !== idx)
-        : [...prev, idx];
-      return newShadowImages;
-    });
+  const handleShadowProcessClick = async (idx) => {
+    console.log('[App] Clic sur bouton violet - démarrage overlay pour image', idx);
     
-    // Retire de processImages si présent
-    setProcessImages(prev => prev.filter(i => i !== idx));
-    // Retire de shoesProcessImages si présent
-    setShoesProcessImages(prev => prev.filter(i => i !== idx));
-    
-    // Sélectionne automatiquement l'image
+    // Sélectionner automatiquement l'image si pas déjà sélectionnée
     if (!selectedOrder[idx]) {
       handleImageClick(idx);
+    }
+    
+    // Récupérer l'image à traiter
+    const imageToProcess = images[idx];
+    if (!imageToProcess) {
+      console.error('[App] Image non trouvée pour l\'index', idx);
+      return;
+    }
+    
+    try {
+      // Simuler le traitement de l'image (ici on utilise l'image originale pour la démo)
+      // Dans la vraie implémentation, on ferait appel au service de traitement d'ombre
+      const processedImageUrl = imageToProcess.url;
+      
+      console.log('[App] Image traitée, activation de l\'overlay');
+      
+      // Déclencher l'activation de l'overlay sur la page
+      document.dispatchEvent(new CustomEvent('TTO_ACTIVATE_OVERLAY', {
+        detail: { 
+          imageUrl: processedImageUrl,
+          originalIndex: idx 
+        }
+      }));
+      
+      // Mettre à jour l'état pour indiquer que cette image est en mode overlay
+      setShadowProcessImages(prev => {
+        const newShadowImages = prev.includes(idx) 
+          ? prev.filter(i => i !== idx)
+          : [...prev, idx];
+        return newShadowImages;
+      });
+      
+      // Retirer des autres modes de traitement
+      setProcessImages(prev => prev.filter(i => i !== idx));
+      setShoesProcessImages(prev => prev.filter(i => i !== idx));
+      
+    } catch (error) {
+      console.error('[App] Erreur lors du traitement pour overlay:', error);
+    }
+  };
+
+  /**
+   * Fonction pour recevoir les marges mises à jour de l'overlay
+   */
+  const handleValidatedMargins = (event) => {
+    if (!event.detail || !event.detail.margins) return;
+    
+    console.log('[App] Marges mises à jour reçues:', event.detail.margins);
+    setValidatedMargins(event.detail.margins);
+  };
+
+  /**
+   * Fonction pour télécharger avec les marges spécifiées
+   */
+  const handleDownloadWithMargins = (margins) => {
+    const shadowProcessed = [...shadowProcessImages];
+    if (shadowProcessed.length === 0) return;
+    
+    // Utiliser les marges validées ou des valeurs par défaut
+    const marginsToUse = margins || validatedMargins || { horizontal: 0, vertical: 0, width: 100 };
+    
+    console.log('[App] Téléchargement avec marges:', marginsToUse);
+    
+    // Créer les entrées pour le téléchargement avec les marges
+    const entries = shadowProcessed.map(idx => {
+      const image = images[idx];
+      if (!image) return null;
+      
+      return {
+        url: image.url,
+        filename: `${folderName || 'images'}/${image.filename || `image-${idx}.png`}`,
+        processType: 'shadow',
+        margins: marginsToUse
+      };
+    }).filter(Boolean);
+    
+    // Déclencher le traitement et téléchargement
+    if (entries.length > 0) {
+      document.dispatchEvent(new CustomEvent('TTO_PROCESS_AND_DOWNLOAD', {
+        detail: { entries, folderName: folderName || 'images' }
+      }));
     }
   };
 
@@ -305,10 +380,12 @@ function App() {
 
     // Écoute des mises à jour d'images via CustomEvent sur document
     document.addEventListener('TTO_IMAGES_DATA', handleImagesUpdate);
+    document.addEventListener('TTO_OVERLAY_MARGINS_UPDATED', handleValidatedMargins);
 
     // Nettoyage
     return () => {
       document.removeEventListener('TTO_IMAGES_DATA', handleImagesUpdate);
+      document.removeEventListener('TTO_OVERLAY_MARGINS_UPDATED', handleValidatedMargins);
       document.head.removeChild(styleElement);
     };
   }, []);

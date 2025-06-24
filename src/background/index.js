@@ -17,12 +17,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { entries, folderName } = message;
     (async () => {
       for (const entry of entries) {
-        const { url, order, processType, productType = 'default' } = entry;
+        const { url, order, processType, productType = 'default', margins } = entry;
         
         // Détermine le type de traitement basé sur processType
         const needsProcessing = processType === 'pixian';
         const shoesProcessing = processType === 'shoes';
-        const shadowPreservation = processType === 'shoes_with_shadow';
+        const shadowPreservation = processType === 'shadow' || processType === 'shoes_with_shadow';
+        
+        // Log des marges si présentes
+        if (margins) {
+          console.log('[background] Marges personnalisées détectées:', margins);
+        }
         
         // Crée le chemin complet: date + folder + order
         const date = new Date();
@@ -43,8 +48,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           
           // Choix du traitement selon le type (shoes, pixian standard, shoes avec ombre ou resize)
           if (shadowPreservation) {
-            // Traitement avec préservation d'ombre pour chaussures (marges spéciales)
-            downloadUrl = await processWithShadowPreservation(url, originalName);
+            // Traitement avec préservation d'ombre pour chaussures avec marges personnalisées
+            downloadUrl = await processWithShadowPreservation(url, originalName, margins);
           } else if (shoesProcessing) {
             // Traitement avec Pixian spécifique pour chaussures (marges spéciales)
             downloadUrl = await processWithPixianShoes(url, originalName);
