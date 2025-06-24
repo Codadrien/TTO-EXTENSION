@@ -134,6 +134,131 @@ export async function convertAvifToJpeg(blob) {
   return await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.70 });
 }
 
+// Fonction pour traiter une image de chaussure en conservant l'ombre et en appliquant des marges
+export async function processWithShadowPreservation(url, originalName) {
+  console.log('[background] Traitement avec préservation d\'ombre pour:', url);
+  
+  // 1. Récupère l'image originale
+  const resp = await fetch(url);
+  let blob = await resp.blob();
+  
+  // Si format non supporté (AVIF), convertir en JPEG
+  if (blob.type === 'image/avif' || /\.avif$/i.test(originalName)) {
+    blob = await convertAvifToJpeg(blob);
+    originalName = originalName.replace(/\.avif$/i, '.jpg');
+  }
+  
+  // 2. Crée l'image bitmap
+  const img = await createImageBitmap(blob);
+  
+  // Dimensions maximales permises
+  const MAX_SIZE = 2000;
+  
+  // Dimensions originales
+  const origWidth = img.width;
+  const origHeight = img.height;
+  
+  console.log(`[background] Dimensions originales: ${origWidth}x${origHeight}`);
+  
+  // Définition des marges en pourcentage (identiques à celles de processWithPixianShoes)
+  // Marges: haut droite bas gauche = 0% 8% 26% 8%
+  const marginTop = 0;
+  const marginRight = 0.07;
+  const marginBottom = 0.24;
+  const marginLeft = 0.07;
+  
+  // Calcul des dimensions finales avec les marges
+  // On calcule d'abord la taille de l'image sans les marges
+  const imageRatio = origWidth / origHeight;
+  
+  // Calcul de la largeur et hauteur maximales disponibles après application des marges
+  const availableWidthRatio = 1 - (marginLeft + marginRight);
+  const availableHeightRatio = 1 - (marginTop + marginBottom);
+  
+  // Détermination de la dimension contraignante (largeur ou hauteur)
+  let finalWidth, finalHeight;
+  
+  // Si le ratio de l'image est plus grand que le ratio de l'espace disponible,
+  // alors la largeur est contraignante
+  const availableRatio = (availableWidthRatio / availableHeightRatio) * imageRatio;
+  
+  if (availableRatio > 1) {
+    // La largeur est contraignante
+    finalWidth = Math.min(MAX_SIZE * availableWidthRatio, origWidth);
+    finalHeight = finalWidth / imageRatio;
+  } else {
+    // La hauteur est contraignante
+    finalHeight = Math.min(MAX_SIZE * availableHeightRatio, origHeight);
+    finalWidth = finalHeight * imageRatio;
+  }
+  
+  // Créer un canvas carré pour le résultat final
+  // Calculer la taille du carré en fonction des marges et des dimensions de l'image
+  const maxDimWithMargin = Math.max(
+    finalWidth / availableWidthRatio,
+    finalHeight / availableHeightRatio
+  );
+  
+  // Assurer que la taille finale ne dépasse pas MAX_SIZE
+  const squareSize = Math.min(MAX_SIZE, Math.ceil(maxDimWithMargin));
+  
+  // Arrondir les dimensions
+  finalWidth = Math.round(finalWidth);
+  finalHeight = Math.round(finalHeight);
+  
+  console.log(`[background] Taille du carré final: ${squareSize}x${squareSize}`);
+  console.log(`[background] Dimensions finales de l'image: ${finalWidth}x${finalHeight}`);
+  
+  // Création du canvas carré
+  const canvas = new OffscreenCanvas(squareSize, squareSize);
+  const ctx = canvas.getContext('2d');
+  
+  // Remplissage du fond en blanc
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, squareSize, squareSize);
+  
+  // Calcul de la position pour placer l'image avec les marges spécifiées
+  // Centrer horizontalement avec 8% de marge de chaque côté
+  const availableWidth = squareSize * (1 - marginLeft - marginRight); // Largeur disponible après marges
+  
+  // Si l'image est plus petite que l'espace disponible, on la centre
+  let x;
+  if (finalWidth < availableWidth) {
+    // Centrer horizontalement dans l'espace disponible
+    x = Math.round(squareSize * marginLeft + (availableWidth - finalWidth) / 2);
+  } else {
+    // Sinon, on applique simplement la marge gauche
+    x = Math.round(squareSize * marginLeft);
+  }
+  
+  // Positionner verticalement avec 26% de marge en bas
+  // On calcule la position Y pour que le bas de l'image soit à (1 - marginBottom) * squareSize
+  const y = Math.round((1 - marginBottom) * squareSize - finalHeight);
+  
+  // Dessin de l'image avec les marges calculées
+  ctx.drawImage(img, x, y, finalWidth, finalHeight);
+  
+  // Conversion en blob avec qualité 70% et format forcé en JPG
+  const processedBlob = await canvas.convertToBlob({
+    type: 'image/jpeg',
+    quality: 0.70 // Bonne qualité avec compression raisonnable
+  });
+  
+  // 3. Convertit le Blob en DataURL avec format forcé en JPG
+  return await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Force le format en JPG en remplaçant le type MIME dans le DataURL
+      const dataUrl = reader.result;
+      // S'assure que c'est bien un JPG dans le header du DataURL
+      const jpgDataUrl = dataUrl.replace(/^data:image\/[^;]+;base64,/, 'data:image/jpeg;base64,');
+      // Le nom original est déjà géré dans index.js, on retourne simplement le dataURL
+      resolve(jpgDataUrl);
+    };
+    reader.readAsDataURL(processedBlob);
+  });
+}
+
 // Fonction pour traiter une image sans Pixian (place l'image dans un carré blanc)
 export async function processWithResize(url) {
   console.log('[background] Traitement simple pour:', url);

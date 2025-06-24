@@ -37,6 +37,14 @@ const styles = `
   .shoes-process {
     background-color: #FF9800; /* Orange pour le traitement shoes */
   }
+  .shadow-process {
+    background-color: #9C27B0; /* Violet pour le traitement avec ombre */
+  }
+  
+  /* Style pour l'image sélectionnée avec préservation d'ombre */
+  .selected-shadow {
+    border: 2px solid #9C27B0;
+  }
 `;
 
 function App() {
@@ -55,6 +63,7 @@ function App() {
   const [selectedOrder, setSelectedOrder] = useState({});
   const [processImages, setProcessImages] = useState([]);
   const [shoesProcessImages, setShoesProcessImages] = useState([]);
+  const [shadowProcessImages, setShadowProcessImages] = useState([]);
 
   // State pour le nom du dossier
   const [folderName, setFolderName] = useState('');
@@ -151,7 +160,8 @@ function App() {
     const entries = selectedIndices.map(idx => ({
       ...images[idx],
       processType: processImages.includes(idx) ? 'pixian' : 
-                   shoesProcessImages.includes(idx) ? 'shoes' : 'resize',
+                   shoesProcessImages.includes(idx) ? 'shoes' : 
+                   shadowProcessImages.includes(idx) ? 'shoes_with_shadow' : 'resize',
       productType: processImages.includes(idx) ? productType : 'default',
       order: selectedOrder[idx]
     }));
@@ -209,6 +219,30 @@ function App() {
     
     // Retire de processImages si présent
     setProcessImages(prev => prev.filter(i => i !== idx));
+    // Retire de shadowProcessImages si présent
+    setShadowProcessImages(prev => prev.filter(i => i !== idx));
+    
+    // Sélectionne automatiquement l'image
+    if (!selectedOrder[idx]) {
+      handleImageClick(idx);
+    }
+  };
+  
+  /**
+   * Fonction pour gérer le clic sur le bouton violet (traitement avec préservation d'ombre)
+   */
+  const handleShadowProcessClick = (idx) => {
+    setShadowProcessImages(prev => {
+      const newShadowImages = prev.includes(idx) 
+        ? prev.filter(i => i !== idx)
+        : [...prev, idx];
+      return newShadowImages;
+    });
+    
+    // Retire de processImages si présent
+    setProcessImages(prev => prev.filter(i => i !== idx));
+    // Retire de shoesProcessImages si présent
+    setShoesProcessImages(prev => prev.filter(i => i !== idx));
     
     // Sélectionne automatiquement l'image
     if (!selectedOrder[idx]) {
@@ -340,9 +374,11 @@ function App() {
             selectedOrder={selectedOrder}
             processImages={processImages}
             shoesProcessImages={shoesProcessImages}
+            shadowProcessImages={shadowProcessImages}
             onImageClick={handleImageClick}
             onProcessClick={handleProcessClick}
             onShoesProcessClick={handleShoesProcessClick}
+            onShadowProcessClick={handleShadowProcessClick}
           />
         )}
       </div>

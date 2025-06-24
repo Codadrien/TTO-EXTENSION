@@ -8,9 +8,11 @@ import ImageCard from './ImageCard';
  * @param {Object} selectedOrder - Ordre de sélection des images
  * @param {Array} processImages - Images sélectionnées pour traitement Pixian
  * @param {Array} shoesProcessImages - Images sélectionnées pour traitement chaussures
+ * @param {Array} shadowProcessImages - Images sélectionnées pour traitement avec ombre
  * @param {Function} onImageClick - Fonction appelée lors du clic sur une image
  * @param {Function} onProcessClick - Fonction appelée lors du clic sur le bouton vert
  * @param {Function} onShoesProcessClick - Fonction appelée lors du clic sur le bouton orange
+ * @param {Function} onShadowProcessClick - Fonction appelée lors du clic sur le bouton violet
  */
 function ImageGrid({ 
   images, 
@@ -18,9 +20,11 @@ function ImageGrid({
   selectedOrder, 
   processImages, 
   shoesProcessImages,
+  shadowProcessImages,
   onImageClick,
   onProcessClick,
-  onShoesProcessClick
+  onShoesProcessClick,
+  onShadowProcessClick
 }) {
   return (
     <div id="imageContainer" className="image-grid">
@@ -33,9 +37,11 @@ function ImageGrid({
           selectedOrder={selectedOrder}
           processImages={processImages}
           shoesProcessImages={shoesProcessImages}
+          shadowProcessImages={shadowProcessImages}
           onImageClick={onImageClick}
           onProcessClick={onProcessClick}
           onShoesProcessClick={onShoesProcessClick}
+          onShadowProcessClick={onShadowProcessClick}
         />
       ))}
     </div>

@@ -8,9 +8,11 @@ import React from 'react';
  * @param {Object} selectedOrder - Ordre de sélection des images
  * @param {Array} processImages - Images sélectionnées pour traitement Pixian
  * @param {Array} shoesProcessImages - Images sélectionnées pour traitement chaussures
+ * @param {Array} shadowProcessImages - Images sélectionnées pour traitement avec préservation d'ombre
  * @param {Function} onImageClick - Fonction appelée lors du clic sur l'image
  * @param {Function} onProcessClick - Fonction appelée lors du clic sur le bouton vert
  * @param {Function} onShoesProcessClick - Fonction appelée lors du clic sur le bouton orange
+ * @param {Function} onShadowProcessClick - Fonction appelée lors du clic sur le bouton violet
  */
 function ImageCard({ 
   image, 
@@ -19,17 +21,21 @@ function ImageCard({
   selectedOrder, 
   processImages, 
   shoesProcessImages,
+  shadowProcessImages = [], // Valeur par défaut pour la rétrocompatibilité
   onImageClick,
   onProcessClick,
-  onShoesProcessClick
+  onShoesProcessClick,
+  onShadowProcessClick = () => {} // Valeur par défaut pour la rétrocompatibilité
 }) {
   const { url, format, weight } = image;
   const isSelected = selectedOrder[idx];
   const isProcessSelected = processImages.includes(idx);
   const isShoesSelected = shoesProcessImages.includes(idx);
+  const isShadowSelected = shadowProcessImages.includes(idx);
 
   // Détermine le type de traitement pour l'indicateur
   const getProcessingType = () => {
+    if (isShadowSelected) return 'shadow-process';
     if (isShoesSelected) return 'shoes-process';
     if (isProcessSelected) return 'pixian-process';
     return 'resize-process';
@@ -37,6 +43,7 @@ function ImageCard({
 
   // Détermine le texte de l'indicateur
   const getProcessingText = () => {
+    if (isShadowSelected) return 'Shoes avec ombre';
     if (isShoesSelected) return 'Détourage + Shoes marges';
     if (isProcessSelected) return 'Détourage auto';
     return 'Resize + compression';
@@ -57,9 +64,17 @@ function ImageCard({
         style={{ right: '30px', backgroundColor: '#FF9800' }}
       ></button>
       
+      {/* Bouton violet déclenchant la sélection d'image avec préservation d'ombre */}
+      <button 
+        className="process-button shadow-button" 
+        onClick={() => onShadowProcessClick(idx)} 
+        style={{ right: '55px', backgroundColor: '#9C27B0' }}
+        title="Conserver l'ombre"
+      ></button>
+      
       {/* L'image */}
       <img
-        className={`image-item ${isSelected ? 'selected-image' : ''} ${isProcessSelected ? 'selected-process' : ''} ${isShoesSelected ? 'selected-shoes' : ''}`}
+        className={`image-item ${isSelected ? 'selected-image' : ''} ${isProcessSelected ? 'selected-process' : ''} ${isShoesSelected ? 'selected-shoes' : ''} ${isShadowSelected ? 'selected-shadow' : ''}`}
         src={url}
         alt={`Image ${idx + 1}`}
         onClick={() => onImageClick(idx)}

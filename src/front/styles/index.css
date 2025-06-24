@@ -258,6 +258,11 @@
     outline: 4px solid #FF9800;
 }
 
+/* Outline violet pour les images marquées pour traitement avec ombre */
+.selected-shadow {
+    outline: 4px solid #9C27B0;
+}
+
 /* Skeleton loading styles */
 .skeleton-image-placeholder {
     position: relative;

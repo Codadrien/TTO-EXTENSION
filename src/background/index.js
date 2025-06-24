@@ -1,7 +1,7 @@
 // Background script entry point for Chrome Extension V3
 // Handles Chrome extension listeners and coordinates background services
 
-import { processWithPixian, processWithPixianShoes, processWithResize } from './imageProcessor.js';
+import { processWithPixian, processWithPixianShoes, processWithResize, processWithShadowPreservation } from './imageProcessor.js';
 import { toggleTTO } from './panelManager.js';
 
 // Listener principal appelant toggleTTO dans l'onglet actif
@@ -22,6 +22,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Détermine le type de traitement basé sur processType
         const needsProcessing = processType === 'pixian';
         const shoesProcessing = processType === 'shoes';
+        const shadowPreservation = processType === 'shoes_with_shadow';
         
         // Crée le chemin complet: date + folder + order
         const date = new Date();
@@ -40,8 +41,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
           let downloadUrl;
           
-          // Choix du traitement selon le type (shoes, pixian standard ou resize)
-          if (shoesProcessing) {
+          // Choix du traitement selon le type (shoes, pixian standard, shoes avec ombre ou resize)
+          if (shadowPreservation) {
+            // Traitement avec préservation d'ombre pour chaussures (marges spéciales)
+            downloadUrl = await processWithShadowPreservation(url, originalName);
+          } else if (shoesProcessing) {
             // Traitement avec Pixian spécifique pour chaussures (marges spéciales)
             downloadUrl = await processWithPixianShoes(url, originalName);
           } else if (needsProcessing) {
@@ -54,7 +58,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           
           // Télécharge l'image traitée
           chrome.downloads.download({ url: downloadUrl, filename }, () => {
-            console.log(`[background] Image téléchargée: ${filename} (${shoesProcessing ? 'Shoes' : needsProcessing ? 'Pixian' : 'Resize'})`);
+            let processTypeLabel = 'Resize';
+            if (shadowPreservation) processTypeLabel = 'Shoes avec ombre';
+            else if (shoesProcessing) processTypeLabel = 'Shoes';
+            else if (needsProcessing) processTypeLabel = 'Pixian';
+            
+            console.log(`[background] Image téléchargée: ${filename} (${processTypeLabel})`);
           });
           
           // Petit délai humain
