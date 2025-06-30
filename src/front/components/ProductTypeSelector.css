@@ -1,0 +1,152 @@
+/* Styles pour le composant ProductTypeSelector */
+
+.product-type-selector {
+  margin-bottom: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.product-type-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #495057;
+  font-size: 14px;
+}
+
+.product-type-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.product-type-option {
+  padding: 4px 8px;
+  background: #ffffff;
+  border: 2px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  text-align: center;
+  min-width: 60px;
+}
+
+.product-type-option:hover {
+  background: #e3f2fd;
+  border-color: #90caf9;
+}
+
+.product-type-option.selected {
+  background: #2196f3;
+  color: white;
+  border-color: #1976d2;
+  font-weight: bold;
+}
+
+/* Affichage des marges actuelles */
+.margins-display {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.margins-label {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 4px;
+}
+
+.margins-preview {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #495057;
+}
+
+.margins-preview span {
+  padding: 2px 6px;
+  background: #e9ecef;
+  border-radius: 4px;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Section des marges personnalisées */
+.custom-margins {
+  border-top: 1px solid #dee2e6;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.custom-margins-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #495057;
+  font-size: 13px;
+}
+
+.margins-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.margin-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.margin-input-group label {
+  font-size: 12px;
+  color: #6c757d;
+  min-width: 50px;
+  font-weight: 500;
+}
+
+.margin-input-group input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+  background: #ffffff;
+  transition: border-color 0.2s ease;
+}
+
+.margin-input-group input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.margin-input-group input:invalid {
+  border-color: #dc3545;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .product-type-options {
+    flex-direction: column;
+  }
+  
+  .product-type-option {
+    min-width: auto;
+  }
+  
+  .margins-inputs {
+    grid-template-columns: 1fr;
+  }
+  
+  .margins-preview {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+} 

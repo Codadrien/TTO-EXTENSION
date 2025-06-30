@@ -1,8 +1,56 @@
 // Background script entry point for Chrome Extension V3
 // Handles Chrome extension listeners and coordinates background services
 
-import { processWithPixian, processWithPixianShoes, processWithResize, processWithShadowPreservation } from './imageProcessor.js';
+import { processWithPixianByProductType, processWithPixianShoes } from './pixianService.js';
+import { fetchImageBlob, prepareImageBlob, blobToJpegDataUrl } from './imageUtils.js';
+import { processWithShadowPreservation, processWithResize } from './canvasProcessor.js';
 import { toggleTTO } from './panelManager.js';
+
+// Orchestration des traitements d'images intégrée dans index.js
+
+async function processWithPixian(url, filename, productType = 'default', customMargins = null) {
+  console.log(`[background] Traitement Pixian (${productType}) pour ${filename}`);
+  
+  const blob = await fetchImageBlob(url);
+  const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
+  const processedBlob = await processWithPixianByProductType(preparedBlob, filename, productType, customMargins);
+  return blobToJpegDataUrl(processedBlob);
+}
+
+async function processPixianShoes(url, filename) {
+  console.log(`[background] Traitement Pixian chaussures pour ${filename}`);
+  
+  const blob = await fetchImageBlob(url);
+  const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
+  const processedBlob = await processWithPixianShoes(preparedBlob, filename);
+  return blobToJpegDataUrl(processedBlob);
+}
+
+async function processShadowPreservation(url, filename, maxSize = 2000) {
+  console.log(`[background] Traitement avec préservation d'ombre pour ${filename}`);
+  
+  const blob = await fetchImageBlob(url);
+  const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
+  
+  // Créer un ImageBitmap à partir du blob
+  const img = await createImageBitmap(preparedBlob);
+  const processedBlob = await processWithShadowPreservation(img, maxSize);
+  
+  return blobToJpegDataUrl(processedBlob);
+}
+
+async function processResize(url, filename, maxSize = 2000) {
+  console.log(`[background] Redimensionnement pour ${filename}`);
+  
+  const blob = await fetchImageBlob(url);
+  const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
+  
+  // Créer un ImageBitmap à partir du blob
+  const img = await createImageBitmap(preparedBlob);
+  const processedBlob = await processWithResize(img, maxSize);
+  
+  return blobToJpegDataUrl(processedBlob);
+}
 
 // Listener principal appelant toggleTTO dans l'onglet actif
 chrome.action.onClicked.addListener((tab) => {
@@ -17,7 +65,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { entries, folderName } = message;
     (async () => {
       for (const entry of entries) {
-        const { url, order, processType, productType = 'default' } = entry;
+        const { url, order, processType, productType = 'default', customMargins = null } = entry;
         
         // Détermine le type de traitement basé sur processType
         const needsProcessing = processType === 'pixian';
@@ -41,19 +89,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
           let downloadUrl;
           
+          // Log des paramètres de traitement
+          console.log(`[background] Traitement: ${processType}, Type: ${productType}, Marges:`, customMargins);
+          
           // Choix du traitement selon le type (shoes, pixian standard, shoes avec ombre ou resize)
           if (shadowPreservation) {
             // Traitement avec préservation d'ombre pour chaussures (marges spéciales)
-            downloadUrl = await processWithShadowPreservation(url, originalName);
+            downloadUrl = await processShadowPreservation(url, originalName);
           } else if (shoesProcessing) {
             // Traitement avec Pixian spécifique pour chaussures (marges spéciales)
-            downloadUrl = await processWithPixianShoes(url, originalName);
+            downloadUrl = await processPixianShoes(url, originalName);
           } else if (needsProcessing) {
-            // Traitement avec Pixian standard (suppression de fond) avec le type de produit
-            downloadUrl = await processWithPixian(url, originalName, productType);
+            // Traitement avec Pixian standard (suppression de fond) avec le type de produit et marges personnalisées
+            downloadUrl = await processWithPixian(url, originalName, productType, customMargins);
           } else {
             // Traitement simple avec redimensionnement
-            downloadUrl = await processWithResize(url, originalName);
+            downloadUrl = await processResize(url, originalName);
           }
           
           // Télécharge l'image traitée
@@ -61,7 +112,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             let processTypeLabel = 'Resize';
             if (shadowPreservation) processTypeLabel = 'Shoes avec ombre';
             else if (shoesProcessing) processTypeLabel = 'Shoes';
-            else if (needsProcessing) processTypeLabel = 'Pixian';
+            else if (needsProcessing) {
+              processTypeLabel = customMargins ? `Pixian (${productType} - personnalisé)` : `Pixian (${productType})`;
+            }
             
             console.log(`[background] Image téléchargée: ${filename} (${processTypeLabel})`);
           });
