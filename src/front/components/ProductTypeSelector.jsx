@@ -198,7 +198,7 @@ function ProductTypeSelector({
         overlayImg.style.cssText = `
           max-width: 100% !important;
           max-height: 100% !important;
-          width: auto !important;
+          width: 520px !important;
           height: auto !important;
           object-fit: contain !important;
           transition: all 0.3s ease !important;
