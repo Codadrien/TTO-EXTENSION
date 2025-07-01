@@ -67,6 +67,45 @@ export function registerChromeMessageListener() {
       console.error('[contentScript] Impossible d\'envoyer process_and_download', e);
     }
   });
+
+  // Écouteur pour les demandes de prévisualisation Pixian
+  document.addEventListener('TTO_PIXIAN_PREVIEW_REQUEST', (event) => {
+    const { imageUrl, productType, customMargins } = event.detail || {};
+    if (!imageUrl) {
+      console.error('[contentScript] URL d\'image manquante pour la prévisualisation');
+      return;
+    }
+    
+    try {
+      chrome.runtime.sendMessage({
+        type: 'process_pixian_preview',
+        imageUrl: imageUrl,
+        productType: productType,
+        customMargins: customMargins
+      }, (response) => {
+        // Renvoyer la réponse à l'interface via un événement personnalisé
+        if (chrome.runtime.lastError) {
+          console.error('[contentScript] Erreur runtime lors de la prévisualisation:', chrome.runtime.lastError);
+          document.dispatchEvent(new CustomEvent('TTO_PIXIAN_PREVIEW_RESPONSE', {
+            detail: { success: false, error: chrome.runtime.lastError.message }
+          }));
+        } else if (response) {
+          document.dispatchEvent(new CustomEvent('TTO_PIXIAN_PREVIEW_RESPONSE', {
+            detail: response
+          }));
+        } else {
+          document.dispatchEvent(new CustomEvent('TTO_PIXIAN_PREVIEW_RESPONSE', {
+            detail: { success: false, error: 'Aucune réponse du background script' }
+          }));
+        }
+      });
+    } catch (e) {
+      console.error('[contentScript] Impossible d\'envoyer la demande de prévisualisation', e);
+      document.dispatchEvent(new CustomEvent('TTO_PIXIAN_PREVIEW_RESPONSE', {
+        detail: { success: false, error: e.message }
+      }));
+    }
+  });
 }
 
 /**

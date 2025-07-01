@@ -77,4 +77,22 @@ export function processFileName(url) {
   let originalName = url.split('/').pop().split('?')[0] || 'image';
   // Force l'extension en .jpg
   return originalName.replace(/\.[^.]+$/, '') + '.jpg';
+}
+
+/**
+ * Convertit un Blob en DataURL PNG
+ * @param {Blob} blob - Blob à convertir
+ * @returns {Promise<string>} - DataURL en format PNG
+ */
+export async function blobToPngDataUrl(blob) {
+  return await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Force le format en PNG dans le header du DataURL
+      const dataUrl = reader.result;
+      const pngDataUrl = dataUrl.replace(/^data:image\/[^;]+;base64,/, 'data:image/png;base64,');
+      resolve(pngDataUrl);
+    };
+    reader.readAsDataURL(blob);
+  });
 } 

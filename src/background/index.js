@@ -1,8 +1,8 @@
 // Background script entry point for Chrome Extension V3
 // Handles Chrome extension listeners and coordinates background services
 
-import { processWithPixianByProductType, processWithPixianShoes } from './pixianService.js';
-import { fetchImageBlob, prepareImageBlob, blobToJpegDataUrl } from './imageUtils.js';
+import { processWithPixianByProductType, callPixianAPI } from './pixianService.js';
+import { fetchImageBlob, prepareImageBlob, blobToJpegDataUrl, blobToPngDataUrl } from './imageUtils.js';
 import { processWithShadowPreservation, processWithResize } from './canvasProcessor.js';
 import { toggleTTO } from './panelManager.js';
 
@@ -17,13 +17,23 @@ async function processWithPixian(url, filename, productType = 'default', customM
   return blobToJpegDataUrl(processedBlob);
 }
 
-async function processPixianShoes(url, filename) {
-  console.log(`[background] Traitement Pixian chaussures pour ${filename}`);
+async function processWithPixianPngTransparent(url, filename) {
+  console.log(`[background] Traitement Pixian PNG transparent pour ${filename}`);
   
   const blob = await fetchImageBlob(url);
   const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
-  const processedBlob = await processWithPixianShoes(preparedBlob, filename);
-  return blobToJpegDataUrl(processedBlob);
+  
+  // Appel direct à l'API Pixian avec options spécifiques pour PNG transparent
+  // NE PAS inclure targetSize pour éviter le rendu carré
+  const processedBlob = await callPixianAPI(preparedBlob, filename, {
+    margin: '0% 0% 0% 0%',
+    cropToForeground: 'true',
+    // Pas de backgroundColor pour avoir un fond transparent
+    outputFormat: 'png'
+    // PAS de targetSize !
+  });
+  
+  return blobToPngDataUrl(processedBlob);
 }
 
 async function processShadowPreservation(url, filename, maxSize = 2000) {
@@ -60,6 +70,39 @@ chrome.action.onClicked.addListener((tab) => {
 
 // Listener pour les messages de téléchargement
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'process_pixian_preview') {
+    console.log('[background] Traitement Pixian pour prévisualisation demandé');
+    const { imageUrl, productType = 'default', customMargins = null } = message;
+    
+    (async () => {
+      try {
+        // Génère un nom de fichier temporaire
+        const tempFilename = `preview_${Date.now()}.jpg`;
+        
+        // Si productType est 'no_margins_png', traiter en PNG transparent bord à bord
+        let processedUrl;
+        if (productType === 'no_margins_png') {
+          console.log('[background] Traitement PNG transparent bord à bord demandé');
+          // Traiter en PNG transparent avec marges nulles et crop to foreground
+          processedUrl = await processWithPixianPngTransparent(imageUrl, tempFilename);
+        } else {
+          // Traitement normal avec le type de produit et les marges
+          processedUrl = await processWithPixian(imageUrl, tempFilename, productType, customMargins);
+        }
+        
+        // Envoie la réponse avec l'URL de l'image traitée
+        sendResponse({ success: true, processedImageUrl: processedUrl });
+        
+        console.log('[background] Prévisualisation Pixian terminée avec succès');
+      } catch (error) {
+        console.error('[background] Erreur lors de la prévisualisation Pixian:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    
+    return true; // Indique que sendResponse sera appelé de manière asynchrone
+  }
+
   if (message.type === 'process_and_download') {
     console.log('[background] Téléchargement / traitement demandé');
     const { entries, folderName } = message;
@@ -69,7 +112,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         
         // Détermine le type de traitement basé sur processType
         const needsProcessing = processType === 'pixian';
-        const shoesProcessing = processType === 'shoes';
         const shadowPreservation = processType === 'shoes_with_shadow';
         
         // Crée le chemin complet: date + folder + order
@@ -92,13 +134,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Log des paramètres de traitement
           console.log(`[background] Traitement: ${processType}, Type: ${productType}, Marges:`, customMargins);
           
-          // Choix du traitement selon le type (shoes, pixian standard, shoes avec ombre ou resize)
+          // Choix du traitement selon le type (pixian avec productType, shoes avec ombre ou resize)
           if (shadowPreservation) {
             // Traitement avec préservation d'ombre pour chaussures (marges spéciales)
             downloadUrl = await processShadowPreservation(url, originalName);
-          } else if (shoesProcessing) {
-            // Traitement avec Pixian spécifique pour chaussures (marges spéciales)
-            downloadUrl = await processPixianShoes(url, originalName);
           } else if (needsProcessing) {
             // Traitement avec Pixian standard (suppression de fond) avec le type de produit et marges personnalisées
             downloadUrl = await processWithPixian(url, originalName, productType, customMargins);
@@ -111,7 +150,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           chrome.downloads.download({ url: downloadUrl, filename }, () => {
             let processTypeLabel = 'Resize';
             if (shadowPreservation) processTypeLabel = 'Shoes avec ombre';
-            else if (shoesProcessing) processTypeLabel = 'Shoes';
             else if (needsProcessing) {
               processTypeLabel = customMargins ? `Pixian (${productType} - personnalisé)` : `Pixian (${productType})`;
             }

@@ -1,37 +1,199 @@
+/* Styles pour le composant ProductTypeSelector */
+
 .product-type-selector {
-  margin: 10px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  margin-bottom: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
 }
 
 .product-type-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #495057;
   font-size: 14px;
-  font-weight: 500;
-  color: #333;
 }
 
 .product-type-options {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .product-type-option {
-  padding: 5px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 4px 8px;
+  background: #ffffff;
+  border: 2px solid #dee2e6;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
   transition: all 0.2s ease;
+  font-size: 12px;
+  text-align: center;
+  min-width: 60px;
 }
 
 .product-type-option:hover {
-  background-color: #f5f5f5;
+  background: #e3f2fd;
+  border-color: #90caf9;
 }
 
 .product-type-option.selected {
-  border: 2px solid #ff0000;
-  background-color: rgba(255, 0, 0, 0.05);
+  background: #2196f3;
+  color: white;
+  border-color: #1976d2;
+  font-weight: bold;
+}
+
+/* Section du bouton Visible */
+.visible-button-container {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.visible-button {
+  padding: 6px 16px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.visible-button:hover:not(:disabled) {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+.visible-button.active {
+  background: #28a745;
+  box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+}
+
+.visible-button.active:hover {
+  background: #218838;
+}
+
+.visible-button.processing {
+  background: #ffc107;
+  color: #212529;
+  cursor: not-allowed;
+  animation: pulse 1.5s infinite;
+}
+
+.visible-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.visible-status {
+  font-size: 12px;
+  color: #28a745;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.visible-status::before {
+  content: "●";
+  color: #28a745;
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+/* Section des marges personnalisées */
+.custom-margins {
+  border-top: 1px solid #dee2e6;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.custom-margins-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #495057;
+  font-size: 13px;
+}
+
+.margins-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.margin-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.margin-input-group label {
+  font-size: 12px;
+  color: #6c757d;
+  min-width: 50px;
+  font-weight: 500;
+}
+
+.margin-input-group input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+  background: #ffffff;
+  transition: border-color 0.2s ease;
+}
+
+.margin-input-group input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.margin-input-group input:invalid {
+  border-color: #dc3545;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .product-type-options {
+    flex-direction: column;
+  }
+  
+  .product-type-option {
+    min-width: auto;
+  }
+  
+  .margins-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .visible-button-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }

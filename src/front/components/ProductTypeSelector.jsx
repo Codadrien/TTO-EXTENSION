@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './ProductTypeSelector.css';
+import '../styles/ProductTypeSelector.css';
 
 /**
  * Composant ProductTypeSelector - Permet de sélectionner le type de produit et configurer les marges
@@ -7,14 +7,28 @@ import './ProductTypeSelector.css';
  * @param {function} onTypeChange - Fonction appelée lors du changement de type
  * @param {Object} customMargins - Marges personnalisées actuelles
  * @param {function} onMarginsChange - Fonction appelée lors du changement de marges
+ * @param {Array} images - Liste des images disponibles
+ * @param {Object} selectedOrder - Ordre de sélection des images
+ * @param {Array} processImages - Images sélectionnées pour traitement Pixian
+ * @param {function} onVisibleStateChange - Fonction appelée lors du changement d'état du bouton "Visible"
  */
-function ProductTypeSelector({ selectedType, onTypeChange, customMargins, onMarginsChange }) {
+function ProductTypeSelector({ 
+  selectedType, 
+  onTypeChange, 
+  customMargins, 
+  onMarginsChange,
+  images = [],
+  selectedOrder = {},
+  processImages = [],
+  onVisibleStateChange
+}) {
   // Types de produits disponibles
   const productTypes = [
     { id: 'default', label: 'Standard' },
     { id: 'textile', label: 'Textile' },
     { id: 'pantalon', label: 'Pantalon' },
     { id: 'accessoires', label: 'Accessoires' },
+    { id: 'shoes', label: 'Chaussures' },
     { id: 'custom', label: 'Custom' }
   ];
 
@@ -26,12 +40,18 @@ function ProductTypeSelector({ selectedType, onTypeChange, customMargins, onMarg
     left: ''
   });
 
+  // État pour le bouton "Visible"
+  const [isVisible, setIsVisible] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [injectedImageUrl, setInjectedImageUrl] = useState(null);
+
   // Marges prédéfinies par type
   const predefinedMargins = {
     default: { top: 5, right: 5, bottom: 5, left: 5 },
     textile: { top: 8.5, right: 8.5, bottom: 8.5, left: 8.5 },
     pantalon: { top: 3.2, right: 3.2, bottom: 3.2, left: 3.2 },
-    accessoires: { top: 16, right: 16, bottom: 16, left: 16 }
+    accessoires: { top: 16, right: 16, bottom: 16, left: 16 },
+    shoes: { top: 0, right: 8, bottom: 26, left: 8 }
   };
 
   // Gestion du changement de type de produit
@@ -43,6 +63,14 @@ function ProductTypeSelector({ selectedType, onTypeChange, customMargins, onMarg
       const resetMargins = { top: '', right: '', bottom: '', left: '' };
       setMargins(resetMargins);
       onMarginsChange && onMarginsChange(null);
+    }
+
+    // Appliquer les nouvelles marges visuellement si l'image est visible
+    if (isVisible) {
+      // Délai court pour laisser le state se mettre à jour
+      setTimeout(() => {
+        applyVisualMargins();
+      }, 50);
     }
   };
 
@@ -57,6 +85,265 @@ function ProductTypeSelector({ selectedType, onTypeChange, customMargins, onMarg
     if (selectedType === 'custom') {
       console.log(`[ProductTypeSelector] Marges personnalisées envoyées:`, newMargins);
       onMarginsChange && onMarginsChange(newMargins);
+    }
+
+    // Si l'image est visible, mettre à jour l'injection en temps réel
+    if (isVisible && injectedImageUrl) {
+      updateInjectedImageMargins(newMargins);
+    }
+  };
+
+  // Fonction pour obtenir l'image sélectionnée #1
+  const getFirstSelectedImage = () => {
+    // Trouve l'index de l'image avec l'ordre 1
+    const firstImageIndex = Object.entries(selectedOrder)
+      .find(([idx, order]) => order === 1)?.[0];
+    
+    if (firstImageIndex !== undefined) {
+      const index = parseInt(firstImageIndex);
+      return images[index];
+    }
+    return null;
+  };
+
+  // Fonction pour traiter l'image avec Pixian SANS marges (premier export)
+  const processImageWithPixianNoMargins = async (imageUrl) => {
+    try {
+      console.log('[ProductTypeSelector] Début du traitement Pixian SANS marges pour:', imageUrl);
+      
+      // Créer un message pour le background script - traitement PNG transparent bord à bord
+      const message = {
+        type: 'process_pixian_preview',
+        imageUrl: imageUrl,
+        productType: 'no_margins_png', // Type spécial pour PNG transparent sans marges
+        customMargins: { top: 0, right: 0, bottom: 0, left: 0 }
+      };
+
+      // Envoyer le message au background script via un événement personnalisé
+      return new Promise((resolve, reject) => {
+        const handleResponse = (event) => {
+          if (event.detail.success) {
+            resolve(event.detail.processedImageUrl);
+          } else {
+            reject(new Error(event.detail.error));
+          }
+          document.removeEventListener('TTO_PIXIAN_PREVIEW_RESPONSE', handleResponse);
+        };
+
+        document.addEventListener('TTO_PIXIAN_PREVIEW_RESPONSE', handleResponse);
+        document.dispatchEvent(new CustomEvent('TTO_PIXIAN_PREVIEW_REQUEST', { detail: message }));
+
+        // Timeout après 30 secondes
+        setTimeout(() => {
+          document.removeEventListener('TTO_PIXIAN_PREVIEW_RESPONSE', handleResponse);
+          reject(new Error('Timeout lors du traitement Pixian'));
+        }, 30000);
+      });
+    } catch (error) {
+      console.error('[ProductTypeSelector] Erreur lors du traitement Pixian sans marges:', error);
+      throw error;
+    }
+  };
+
+  // Fonction pour injecter l'image sur le site avec un élément IMG réel
+  const injectImageOnSite = (processedImageUrl) => {
+    try {
+      // Sélectionner tous les éléments .swiper-slide-active img SAUF ceux avec la classe object-contain
+      const allImages = document.querySelectorAll('.swiper-slide-active img');
+      const targetElements = Array.from(allImages).filter(img => !img.classList.contains('object-contain'));
+      
+      if (targetElements.length === 0) {
+        console.warn('[ProductTypeSelector] Aucun élément .swiper-slide-active img (sans object-contain) trouvé');
+        return;
+      }
+
+      targetElements.forEach((img, index) => {
+        // Parent swiper-slide-active
+        const parent = img.parentElement;
+        if (!parent) return;
+
+        // Lire le padding du parent
+        const parentPadding = getComputedStyle(parent).padding;
+
+        // Créer un conteneur pour la superposition
+        const container = document.createElement('div');
+        container.className = 'tto-image-container';
+        container.id = `tto-container-${index}`;
+
+        // Appliquer le même padding que le parent
+        container.style.padding = parentPadding;
+
+        // Créer l'élément IMG détouré
+        const overlayImg = document.createElement('img');
+        overlayImg.src = processedImageUrl;
+        overlayImg.className = 'tto-image-overlay';
+        overlayImg.id = `tto-overlay-${index}`;
+        
+        // Styles pour le conteneur
+        container.style.cssText += `
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          pointer-events: none !important;
+          z-index: 999 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          transition: all 0.3s ease !important;
+        `;
+
+        // Styles pour l'image injectée - SANS marges initialement
+        overlayImg.style.cssText = `
+          max-width: 100% !important;
+          max-height: 100% !important;
+          width: auto !important;
+          height: auto !important;
+          object-fit: contain !important;
+          transition: all 0.3s ease !important;
+          padding: 0% !important;
+        `;
+
+        // Ajouter l'image dans le conteneur
+        container.appendChild(overlayImg);
+
+        // S'assurer que le parent est positionné
+        const parentStyle = getComputedStyle(parent);
+        if (parentStyle.position === 'static') {
+          parent.style.position = 'relative';
+        }
+        parent.appendChild(container);
+      });
+
+      console.log('[ProductTypeSelector] Image IMG injectée sur', targetElements.length, 'éléments (sans marges)');
+    } catch (error) {
+      console.error('[ProductTypeSelector] Erreur lors de l\'injection:', error);
+    }
+  };
+
+  // Fonction pour supprimer les superpositions
+  const removeImageOverlays = () => {
+    const containers = document.querySelectorAll('.tto-image-container');
+    containers.forEach(container => container.remove());
+    
+    // Nettoyer les marges stockées
+    delete window.ttoCurrentMargins;
+    
+    console.log('[ProductTypeSelector] Superpositions supprimées');
+  };
+
+  // Fonction pour appliquer les marges en temps réel avec CSS PADDING pour l'affichage
+  const applyVisualMargins = () => {
+    if (!isVisible) return;
+
+    // Obtenir les marges actuelles selon le type sélectionné
+    let currentMargins;
+    if (selectedType === 'custom') {
+      currentMargins = margins;
+    } else {
+      currentMargins = predefinedMargins[selectedType] || predefinedMargins.default;
+    }
+
+    console.log('[ProductTypeSelector] Application du PADDING visuel:', currentMargins);
+
+    // Appliquer le PADDING CSS sur les images injectées pour l'affichage visuel
+    const overlayImages = document.querySelectorAll('.tto-image-overlay');
+    overlayImages.forEach(overlayImg => {
+      overlayImg.style.padding = `${currentMargins.top || 0}% ${currentMargins.right || 0}% ${currentMargins.bottom || 0}% ${currentMargins.left || 0}%`;
+    });
+
+    // Stocker les valeurs comme MARGINS pour l'export final API Pixian (format pourcentage)
+    window.ttoCurrentMargins = {
+      top: currentMargins.top || 0,    // Garder en % (ex: 8.5)
+      right: currentMargins.right || 0,
+      bottom: currentMargins.bottom || 0,
+      left: currentMargins.left || 0
+    };
+    
+    console.log('[ProductTypeSelector] Valeurs stockées pour export API (pourcentages):', window.ttoCurrentMargins);
+  };
+
+  // Fonction pour mettre à jour les marges de l'image injectée (appelée lors des changements)
+  const updateInjectedImageMargins = (newMargins) => {
+    if (!isVisible) return;
+    
+    // Appliquer le PADDING CSS pour l'affichage visuel
+    const overlayImages = document.querySelectorAll('.tto-image-overlay');
+    overlayImages.forEach(overlayImg => {
+      overlayImg.style.padding = `${newMargins.top || 0}% ${newMargins.right || 0}% ${newMargins.bottom || 0}% ${newMargins.left || 0}%`;
+    });
+    
+    // Stocker les valeurs comme MARGINS pour l'export final API Pixian (format pourcentage)
+    window.ttoCurrentMargins = {
+      top: newMargins.top || 0,    // Garder en % (ex: 10)
+      right: newMargins.right || 0,
+      bottom: newMargins.bottom || 0,
+      left: newMargins.left || 0
+    };
+    
+    console.log('[ProductTypeSelector] PADDING appliqué visuellement:', newMargins);
+    console.log('[ProductTypeSelector] POURCENTAGES stockés pour API:', window.ttoCurrentMargins);
+  };
+
+  // Gestion du clic sur le bouton "Visible"
+  const handleVisibleToggle = async () => {
+    if (isVisible) {
+      // Désactiver la visibilité
+      setIsVisible(false);
+      removeImageOverlays();
+      setInjectedImageUrl(null);
+      
+      // Informer le parent que le bouton "Visible" est désactivé
+      onVisibleStateChange && onVisibleStateChange(false);
+      return;
+    }
+
+    // Vérifications avant d'activer
+    const firstImage = getFirstSelectedImage();
+    if (!firstImage) {
+      alert('Veuillez d\'abord sélectionner une image (elle doit être marquée avec le numéro 1)');
+      return;
+    }
+
+    // Vérifier si l'image est marquée pour traitement Pixian (bouton vert activé)
+    const firstImageIndex = Object.entries(selectedOrder)
+      .find(([idx, order]) => order === 1)?.[0];
+    
+    if (firstImageIndex === undefined || !processImages.includes(parseInt(firstImageIndex))) {
+      alert('L\'image sélectionnée #1 doit avoir le traitement Pixian activé (bouton vert)');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      
+      // ÉTAPE 1: Traiter l'image avec Pixian SANS marges (premier export)
+      console.log('[ProductTypeSelector] ÉTAPE 1: Traitement Pixian sans marges');
+      const processedImageUrl = await processImageWithPixianNoMargins(firstImage.url);
+      
+      // ÉTAPE 2: Injecter l'image sur le site (sans marges)
+      console.log('[ProductTypeSelector] ÉTAPE 2: Injection de l\'image sans marges');
+      injectImageOnSite(processedImageUrl);
+      
+      setInjectedImageUrl(processedImageUrl);
+      setIsVisible(true);
+      
+      // ÉTAPE 3: Appliquer les marges visuellement en temps réel
+      console.log('[ProductTypeSelector] ÉTAPE 3: Application des marges visuelles');
+      setTimeout(() => {
+        applyVisualMargins();
+      }, 100); // Petit délai pour s'assurer que l'injection est terminée
+      
+      // Informer le parent que le bouton "Visible" est maintenant actif
+      onVisibleStateChange && onVisibleStateChange(true);
+      
+      console.log('[ProductTypeSelector] Image visible activée avec succès - marges appliquées visuellement');
+    } catch (error) {
+      console.error('[ProductTypeSelector] Erreur lors de l\'activation:', error);
+      alert('Erreur lors du traitement de l\'image: ' + error.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -73,6 +360,20 @@ function ProductTypeSelector({ selectedType, onTypeChange, customMargins, onMarg
             {type.label}
           </div>
         ))}
+      </div>
+
+      {/* Bouton Visible */}
+      <div className="visible-button-container">
+        <button
+          className={`visible-button ${isVisible ? 'active' : ''} ${isProcessing ? 'processing' : ''}`}
+          onClick={handleVisibleToggle}
+          disabled={isProcessing}
+        >
+          {isProcessing ? 'Traitement...' : isVisible ? 'Masquer' : 'Visible'}
+        </button>
+        {isVisible && (
+          <span className="visible-status">Image injectée sur le site</span>
+        )}
       </div>
 
       {/* Inputs pour marges personnalisées */}

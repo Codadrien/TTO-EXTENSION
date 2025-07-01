@@ -74,6 +74,9 @@ function App() {
   // State pour les marges personnalisées
   const [customMargins, setCustomMargins] = useState(null);
 
+  // State pour l'état du bouton "Visible"
+  const [isVisibleActive, setIsVisibleActive] = useState(false);
+
   // Référence pour l'input file
   const fileInputRef = useRef(null);
 
@@ -157,7 +160,14 @@ function App() {
       return;
     }
     
-    console.log('[App] Début du téléchargement de', selectedIndices.length, 'images avec productType:', productType, 'et marges:', customMargins);
+    // Déterminer les marges à utiliser : celles du bouton "Visible" si actif, sinon celles du state
+    let marginsToUse = customMargins;
+    if (isVisibleActive && window.ttoCurrentMargins) {
+      marginsToUse = window.ttoCurrentMargins;
+      console.log('[App] Utilisation des marges du bouton "Visible":', marginsToUse);
+    }
+    
+    console.log('[App] Début du téléchargement de', selectedIndices.length, 'images avec productType:', productType, 'et marges:', marginsToUse);
     
     // Prépare les données pour le téléchargement
     const entries = selectedIndices.map(idx => ({
@@ -166,7 +176,7 @@ function App() {
                    shoesProcessImages.includes(idx) ? 'shoes' : 
                    shadowProcessImages.includes(idx) ? 'shoes_with_shadow' : 'resize',
       productType: processImages.includes(idx) ? productType : 'default',
-      customMargins: processImages.includes(idx) && productType === 'custom' ? customMargins : null,
+      customMargins: processImages.includes(idx) ? marginsToUse : null,
       order: selectedOrder[idx]
     }));
     
@@ -368,6 +378,10 @@ function App() {
           onTypeChange={setProductType}
           customMargins={customMargins}
           onMarginsChange={setCustomMargins}
+          images={images}
+          selectedOrder={selectedOrder}
+          processImages={processImages}
+          onVisibleStateChange={setIsVisibleActive}
         />
         
         {/* Grille d'images */}

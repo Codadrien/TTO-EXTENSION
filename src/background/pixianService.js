@@ -33,13 +33,14 @@ export async function callPixianAPI(imageBlob, originalName, options = {}) {
     margin = '5%',
     verticalAlignment = null,
     backgroundColor = '#ffffff',
-    targetSize = '2000 2000',
+    targetSize = null, // Ne plus forcer une taille par défaut
     jpegQuality = '70',
     cropToForeground = 'true',
-    testMode = 'false'
+    testMode = 'false',
+    outputFormat = 'auto'
   } = options;
 
-  console.log('[pixianService] Envoi à Pixian avec marge:', margin);
+  console.log('[pixianService] Envoi à Pixian avec marge:', margin, 'format:', outputFormat, backgroundColor ? 'avec fond' : 'transparent');
 
   const form = new FormData();
   form.append('image', imageBlob, originalName);
@@ -51,8 +52,18 @@ export async function callPixianAPI(imageBlob, originalName, options = {}) {
   }
   
   form.append('result.margin', margin);
-  form.append('background.color', backgroundColor);
-  form.append('result.target_size', targetSize);
+  
+  // N'ajouter background.color que si on ne veut pas un fond transparent
+  if (backgroundColor && outputFormat !== 'png') {
+    form.append('background.color', backgroundColor);
+  }
+  
+  // N'ajouter target_size que s'il est explicitement spécifié
+  if (targetSize) {
+    form.append('result.target_size', targetSize);
+  }
+  
+  form.append('output.format', outputFormat);
   form.append('output.jpeg_quality', jpegQuality);
 
   const headers = {
@@ -92,28 +103,15 @@ export async function processWithPixianByProductType(imageBlob, originalName, pr
   
   console.log(`[pixianService] Marges appliquées: ${marginString}`);
   
-  return await callPixianAPI(imageBlob, originalName, { margin: marginString });
-}
-
-/**
- * Traite une image de chaussures avec des marges spécifiques
- * @param {Blob} imageBlob - Image à traiter
- * @param {string} originalName - Nom original
- * @returns {Promise<Blob>} - Image traitée
- */
-export async function processWithPixianShoes(imageBlob, originalName) {
-  console.log('[pixianService] Traitement Pixian Shoes');
-  
-  // Utiliser la configuration spécifique aux chaussures
-  const margins = getMarginConfig('shoes');
-  const marginString = formatMarginsForPixian(margins);
-  
-  const options = {
+  // Configuration spécifique pour les chaussures
+  const options = { 
     margin: marginString,
-    verticalAlignment: 'bottom'
+    targetSize: '2000 2000' // Taille forcée pour les traitements normaux
   };
-
-  console.log(`[pixianService] Marges chaussures appliquées: ${marginString}`);
+  if (productType === 'shoes') {
+    options.verticalAlignment = 'bottom';
+    console.log(`[pixianService] Application de verticalAlignment: bottom pour les chaussures`);
+  }
   
   return await callPixianAPI(imageBlob, originalName, options);
 } 
