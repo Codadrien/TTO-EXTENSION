@@ -45,13 +45,13 @@ function ProductTypeSelector({
   const [isProcessing, setIsProcessing] = useState(false);
   const [injectedImageUrl, setInjectedImageUrl] = useState(null);
 
-  // Marges prédéfinies par type
+  // Marges prédéfinies par type (synchronisées avec background/marginConfig.js)
   const predefinedMargins = {
-    default: { top: 5, right: 5, bottom: 5, left: 5 },
-    textile: { top: 8.5, right: 8.5, bottom: 8.5, left: 8.5 },
-    pantalon: { top: 3.2, right: 3.2, bottom: 3.2, left: 3.2 },
-    accessoires: { top: 16, right: 16, bottom: 16, left: 16 },
-    shoes: { top: 0, right: 8, bottom: 26, left: 8 }
+    default: { top: 5, right: 5, bottom: 5, left: 5 },        // 0.05 * 100
+    textile: { top: 8.5, right: 8.5, bottom: 8.5, left: 8.5 }, // 0.085 * 100
+    pantalon: { top: 3.2, right: 3.2, bottom: 3.2, left: 3.2 }, // 0.032 * 100
+    accessoires: { top: 16, right: 16, bottom: 16, left: 16 },  // 0.16 * 100
+    shoes: { top: 0, right: 8, bottom: 26, left: 8 }           // 0.00, 0.08, 0.26, 0.08 * 100
   };
 
   // Gestion du changement de type de produit
@@ -65,13 +65,11 @@ function ProductTypeSelector({
       onMarginsChange && onMarginsChange(null);
     }
 
-    // Appliquer les nouvelles marges visuellement si l'image est visible
-    if (isVisible) {
-      // Délai court pour laisser le state se mettre à jour
-      setTimeout(() => {
-        applyVisualMargins();
-      }, 50);
-    }
+    // TOUJOURS appliquer les nouvelles marges visuellement (avec ou sans injection)
+    // Passer explicitement le nouveau type pour éviter les problèmes de timing
+    setTimeout(() => {
+      applyVisualMargins(typeId);
+    }, 50);
   };
 
   // Gestion du changement de marge
@@ -243,26 +241,28 @@ function ProductTypeSelector({
   };
 
   // Fonction pour appliquer les marges en temps réel avec CSS PADDING pour l'affichage
-  const applyVisualMargins = () => {
-    if (!isVisible) return;
-
-    // Obtenir les marges actuelles selon le type sélectionné
+  const applyVisualMargins = (overrideType = null) => {
+    // Obtenir les marges actuelles selon le type sélectionné (ou le type passé en paramètre)
+    const typeToUse = overrideType || selectedType;
     let currentMargins;
-    if (selectedType === 'custom') {
+    if (typeToUse === 'custom') {
       currentMargins = margins;
     } else {
-      currentMargins = predefinedMargins[selectedType] || predefinedMargins.default;
+      currentMargins = predefinedMargins[typeToUse] || predefinedMargins.default;
     }
 
-    console.log('[ProductTypeSelector] Application du PADDING visuel:', currentMargins);
+    console.log('[ProductTypeSelector] Application des marges:', currentMargins);
 
-    // Appliquer le PADDING CSS sur les images injectées pour l'affichage visuel
-    const overlayImages = document.querySelectorAll('.tto-image-overlay');
-    overlayImages.forEach(overlayImg => {
-      overlayImg.style.padding = `${currentMargins.top || 0}% ${currentMargins.right || 0}% ${currentMargins.bottom || 0}% ${currentMargins.left || 0}%`;
-    });
+    // CAS 1: Si l'image est injectée, appliquer le PADDING CSS visuel
+    if (isVisible && injectedImageUrl) {
+      const overlayImages = document.querySelectorAll('.tto-image-overlay');
+      overlayImages.forEach(overlayImg => {
+        overlayImg.style.padding = `${currentMargins.top || 0}% ${currentMargins.right || 0}% ${currentMargins.bottom || 0}% ${currentMargins.left || 0}%`;
+      });
+      console.log('[ProductTypeSelector] PADDING visuel appliqué sur images injectées');
+    }
 
-    // Stocker les valeurs comme MARGINS pour l'export final API Pixian (format pourcentage)
+    // CAS 2: TOUJOURS stocker les valeurs pour l'export final API Pixian (format pourcentage)
     window.ttoCurrentMargins = {
       top: currentMargins.top || 0,    // Garder en % (ex: 8.5)
       right: currentMargins.right || 0,
