@@ -148,12 +148,21 @@ function ProductTypeSelector({
   // Fonction pour injecter l'image sur le site avec un élément IMG réel
   const injectImageOnSite = (processedImageUrl) => {
     try {
-      // Sélectionner tous les éléments .swiper-slide-active img SAUF ceux avec la classe object-contain
+      // Sélectionner tous les éléments .swiper-slide-active img
       const allImages = document.querySelectorAll('.swiper-slide-active img');
-      const targetElements = Array.from(allImages).filter(img => !img.classList.contains('object-contain'));
+      
+      // Filtrer pour exclure les images avec les classes m-auto ET aspect-square ET object-contain
+      const targetElements = Array.from(allImages).filter(img => {
+        const classList = img.classList;
+        // Exclure si l'image a les 3 classes problématiques ensemble
+        const hasProblematicClasses = classList.contains('m-auto') && 
+                                     classList.contains('aspect-square') && 
+                                     classList.contains('object-contain');
+        return !hasProblematicClasses;
+      });
       
       if (targetElements.length === 0) {
-        console.warn('[ProductTypeSelector] Aucun élément .swiper-slide-active img (sans object-contain) trouvé');
+        console.warn('[ProductTypeSelector] Aucun élément .swiper-slide-active img valide trouvé (exclusion: m-auto + aspect-square + object-contain)');
         return;
       }
 
@@ -216,7 +225,7 @@ function ProductTypeSelector({
         parent.appendChild(container);
       });
 
-      console.log('[ProductTypeSelector] Image IMG injectée sur', targetElements.length, 'éléments (sans marges)');
+      console.log('[ProductTypeSelector] Image IMG injectée sur', targetElements.length, 'éléments');
     } catch (error) {
       console.error('[ProductTypeSelector] Erreur lors de l\'injection:', error);
     }
