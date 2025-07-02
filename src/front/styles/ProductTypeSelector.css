@@ -381,44 +381,45 @@
   font-size: 13px;
 }
 
-.margins-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.margin-input-group {
+.margins-inputs-inline {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
 }
 
-.margin-input-group label {
-  font-size: 12px;
+.margin-label {
+  font-size: 11px;
   color: #6c757d;
-  min-width: 50px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
-.margin-input-group input {
-  flex: 1;
-  padding: 4px 8px;
+.margin-input-compact {
+  width: 50px;
+  padding: 3px 6px;
   border: 1px solid #ced4da;
-  border-radius: 4px;
+  border-radius: 3px;
   font-size: 12px;
   text-align: center;
   background: #ffffff;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-.margin-input-group input:focus {
+.margin-input-compact:focus {
   outline: none;
   border-color: #2196f3;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+  transform: scale(1.05);
 }
 
-.margin-input-group input:invalid {
+.margin-input-compact:invalid {
   border-color: #dc3545;
+}
+
+.margin-input-compact:hover {
+  border-color: #90caf9;
 }
 
 /* Responsive design */
@@ -431,8 +432,14 @@
     min-width: auto;
   }
   
-  .margins-inputs {
-    grid-template-columns: 1fr;
+  .margins-inputs-inline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  
+  .margin-input-compact {
+    width: 60px;
   }
 
   .product-type-header {

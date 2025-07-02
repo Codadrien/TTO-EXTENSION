@@ -181,6 +181,27 @@ function ProductTypeSelector({
     }
   };
 
+  // Gestion de la navigation circulaire avec Tab
+  const handleKeyDown = (e, currentInput) => {
+    if (e.key === 'Tab' && !e.shiftKey) {
+      // Tab normal (vers l'avant)
+      if (currentInput === 'left') {
+        e.preventDefault();
+        // Revenir au premier input (top)
+        const topInput = document.querySelector('input[tabindex="1"]');
+        if (topInput) topInput.focus();
+      }
+    } else if (e.key === 'Tab' && e.shiftKey) {
+      // Shift+Tab (vers l'arrière)
+      if (currentInput === 'top') {
+        e.preventDefault();
+        // Aller au dernier input (left)
+        const leftInput = document.querySelector('input[tabindex="4"]');
+        if (leftInput) leftInput.focus();
+      }
+    }
+  };
+
   // Sauvegarder un preset
   const handleSavePreset = async () => {
     if (!presetName.trim()) {
@@ -650,51 +671,55 @@ function ProductTypeSelector({
                 </button>
               </div>
             </div>
-            <div className="margins-inputs">
-              <div className="margin-input-group">
-                <label>Haut:</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={margins.top}
-                  onChange={(e) => handleMarginChange('top', e.target.value)}
-                  placeholder="0"
-                />
-              </div>
-              <div className="margin-input-group">
-                <label>Droite:</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={margins.right}
-                  onChange={(e) => handleMarginChange('right', e.target.value)}
-                  placeholder="0"
-                />
-              </div>
-              <div className="margin-input-group">
-                <label>Bas:</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={margins.bottom}
-                  onChange={(e) => handleMarginChange('bottom', e.target.value)}
-                  placeholder="0"
-                />
-              </div>
-              <div className="margin-input-group">
-                <label>Gauche:</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={margins.left}
-                  onChange={(e) => handleMarginChange('left', e.target.value)}
-                  placeholder="0"
-                />
-              </div>
+            <div className="margins-inputs-inline">
+              <span className="margin-label">Haut</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={margins.top}
+                onChange={(e) => handleMarginChange('top', e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 'top')}
+                placeholder="0"
+                className="margin-input-compact"
+                tabIndex={1}
+              />
+              <span className="margin-label">Droite</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={margins.right}
+                onChange={(e) => handleMarginChange('right', e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 'right')}
+                placeholder="0"
+                className="margin-input-compact"
+                tabIndex={2}
+              />
+              <span className="margin-label">Bas</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={margins.bottom}
+                onChange={(e) => handleMarginChange('bottom', e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 'bottom')}
+                placeholder="0"
+                className="margin-input-compact"
+                tabIndex={3}
+              />
+              <span className="margin-label">Gauche</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={margins.left}
+                onChange={(e) => handleMarginChange('left', e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 'left')}
+                placeholder="0"
+                className="margin-input-compact"
+                tabIndex={4}
+              />
             </div>
           </div>
         </div>
