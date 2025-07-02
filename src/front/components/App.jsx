@@ -174,9 +174,9 @@ function App() {
       ...images[idx],
       processType: processImages.includes(idx) ? 'pixian' : 
                    shoesProcessImages.includes(idx) ? 'shoes' : 
-                   shadowProcessImages.includes(idx) ? 'shoes_with_shadow' : 'resize',
-      productType: processImages.includes(idx) ? productType : 'default',
-      customMargins: processImages.includes(idx) ? marginsToUse : null,
+                   shadowProcessImages.includes(idx) ? 'shadow_transparent' : 'resize',
+      productType: processImages.includes(idx) || shadowProcessImages.includes(idx) ? productType : 'default',
+      customMargins: processImages.includes(idx) || shadowProcessImages.includes(idx) ? marginsToUse : null,
       order: selectedOrder[idx]
     }));
     
@@ -243,7 +243,7 @@ function App() {
   };
   
   /**
-   * Fonction pour gérer le clic sur le bouton violet (traitement avec préservation d'ombre)
+   * Fonction pour gérer le clic sur le bouton violet (traitement PNG transparent avec injection)
    */
   const handleShadowProcessClick = (idx) => {
     setShadowProcessImages(prev => {
@@ -381,6 +381,7 @@ function App() {
           images={images}
           selectedOrder={selectedOrder}
           processImages={processImages}
+          shadowProcessImages={shadowProcessImages}
           onVisibleStateChange={setIsVisibleActive}
         />
         

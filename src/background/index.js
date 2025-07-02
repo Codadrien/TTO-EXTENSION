@@ -3,8 +3,9 @@
 
 import { processWithPixianByProductType, callPixianAPI } from './pixianService.js';
 import { fetchImageBlob, prepareImageBlob, blobToJpegDataUrl, blobToPngDataUrl } from './imageUtils.js';
-import { processWithShadowPreservation, processWithResize } from './canvasProcessor.js';
+import { processWithShadowPreservation, processWithResize, processTransparentPngWithMargins } from './canvasProcessor.js';
 import { toggleTTO } from './panelManager.js';
+import { getMarginConfig } from './marginConfig.js';
 
 // Orchestration des traitements d'images intégrée dans index.js
 
@@ -45,6 +46,23 @@ async function processShadowPreservation(url, filename, maxSize = 2000) {
   // Créer un ImageBitmap à partir du blob
   const img = await createImageBitmap(preparedBlob);
   const processedBlob = await processWithShadowPreservation(img, maxSize);
+  
+  return blobToJpegDataUrl(processedBlob);
+}
+
+async function processTransparentPng(url, filename, productType = 'default', customMargins = null, maxSize = 2000) {
+  console.log(`[background] Traitement PNG transparent pour ${filename} avec type: ${productType}`);
+  
+  const blob = await fetchImageBlob(url);
+  const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
+  
+  // Obtenir les marges selon le type de produit
+  const margins = getMarginConfig(productType, customMargins);
+  console.log(`[background] Marges appliquées:`, margins);
+  
+  // Créer un ImageBitmap à partir du blob
+  const img = await createImageBitmap(preparedBlob);
+  const processedBlob = await processTransparentPngWithMargins(img, margins, maxSize);
   
   return blobToJpegDataUrl(processedBlob);
 }
@@ -153,6 +171,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Détermine le type de traitement basé sur processType
         const needsProcessing = processType === 'pixian';
         const shadowPreservation = processType === 'shoes_with_shadow';
+        const transparentPngProcessing = processType === 'shadow_transparent';
         
         // Crée le chemin complet: date + folder + order
         const date = new Date();
@@ -174,10 +193,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Log des paramètres de traitement
           console.log(`[background] Traitement: ${processType}, Type: ${productType}, Marges:`, customMargins);
           
-          // Choix du traitement selon le type (pixian avec productType, shoes avec ombre ou resize)
+          // Choix du traitement selon le type (pixian avec productType, shoes avec ombre, PNG transparent ou resize)
           if (shadowPreservation) {
             // Traitement avec préservation d'ombre pour chaussures (marges spéciales)
             downloadUrl = await processShadowPreservation(url, originalName);
+          } else if (transparentPngProcessing) {
+            // Traitement avec PNG transparent et marges configurables
+            downloadUrl = await processTransparentPng(url, originalName, productType, customMargins);
           } else if (needsProcessing) {
             // Traitement avec Pixian standard (suppression de fond) avec le type de produit et marges personnalisées
             downloadUrl = await processWithPixian(url, originalName, productType, customMargins);
@@ -189,8 +211,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Télécharge l'image traitée
           chrome.downloads.download({ url: downloadUrl, filename }, () => {
             let processTypeLabel = 'Resize';
-            if (shadowPreservation) processTypeLabel = 'Shoes avec ombre';
-            else if (needsProcessing) {
+            if (shadowPreservation) {
+              processTypeLabel = 'Shoes avec ombre';
+            } else if (transparentPngProcessing) {
+              processTypeLabel = customMargins ? `PNG transparent (${productType} - personnalisé)` : `PNG transparent (${productType})`;
+            } else if (needsProcessing) {
               processTypeLabel = customMargins ? `Pixian (${productType} - personnalisé)` : `Pixian (${productType})`;
             }
             

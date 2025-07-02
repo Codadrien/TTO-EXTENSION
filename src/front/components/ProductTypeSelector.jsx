@@ -11,6 +11,7 @@ import '../styles/ProductTypeSelector.css';
  * @param {Array} images - Liste des images disponibles
  * @param {Object} selectedOrder - Ordre de sélection des images
  * @param {Array} processImages - Images sélectionnées pour traitement Pixian
+ * @param {Array} shadowProcessImages - Images sélectionnées pour traitement Pixian (shadow)
  * @param {function} onVisibleStateChange - Fonction appelée lors du changement d'état du bouton "Visible"
  */
 function ProductTypeSelector({ 
@@ -21,6 +22,7 @@ function ProductTypeSelector({
   images = [],
   selectedOrder = {},
   processImages = [],
+  shadowProcessImages = [],
   onVisibleStateChange
 }) {
   // Types de produits disponibles (suppression de 'shoes')
@@ -467,7 +469,15 @@ function ProductTypeSelector({
     // Vérifier si l'index sélectionné est le même
     if (cachedImageData.selectedIndex !== currentIndex) return false;
     
-    // Plus de vérification des marges car l'image détourée reste identique
+    // Vérifier si le mode de traitement (shadow vs pixian) est le même
+    const currentIsShadowProcessing = shadowProcessImages.includes(currentIndex);
+    const cachedIsShadowMode = cachedImageData.isShadowMode || false;
+    
+    if (currentIsShadowProcessing !== cachedIsShadowMode) {
+      console.log('[ProductTypeSelector] Mode de traitement changé, cache invalidé');
+      return false;
+    }
+    
     return true;
   };
 
@@ -495,8 +505,8 @@ function ProductTypeSelector({
     const firstImageIndex = Object.entries(selectedOrder)
       .find(([idx, order]) => order === 1)?.[0];
     
-    if (firstImageIndex === undefined || !processImages.includes(parseInt(firstImageIndex))) {
-      alert('L\'image sélectionnée #1 doit avoir le traitement Pixian activé (bouton vert)');
+    if (firstImageIndex === undefined || (!processImages.includes(parseInt(firstImageIndex)) && !shadowProcessImages.includes(parseInt(firstImageIndex)))) {
+      alert('L\'image sélectionnée #1 doit avoir le traitement Pixian (bouton vert) ou PNG transparent (bouton violet) activé');
       return;
     }
 
@@ -518,21 +528,52 @@ function ProductTypeSelector({
         // Première injection - appel API nécessaire
         console.log('[ProductTypeSelector] Première injection - appel API');
         
-        // ÉTAPE 1: Traiter l'image avec Pixian SANS marges
-        const processedImageUrl = await processImageWithPixianNoMargins(firstImage.url);
+        // Détecter si c'est un traitement PNG transparent (bouton violet) ou Pixian standard (bouton vert)
+        const isShadowProcessing = shadowProcessImages.includes(parseInt(firstImageIndex));
         
-        // ÉTAPE 2: Injecter l'image sur le site
-        injectImageOnSite(processedImageUrl);
-        
-        setInjectedImageUrl(processedImageUrl);
-        setIsVisible(true);
-        
-        // Mettre à jour le cache
-        setCachedImageData({
-          processedUrl: processedImageUrl,
-          sourceImageUrl: firstImage.url,
-          selectedIndex: parseInt(firstImageIndex)
-        });
+        if (isShadowProcessing) {
+          // TRAITEMENT PNG TRANSPARENT (bouton violet) - pas d'API, injection directe
+          console.log('[ProductTypeSelector] Mode PNG transparent - injection directe sans API');
+          
+          // TODO: Demander à l'utilisateur de fournir l'image PNG transparente
+          // Pour l'instant, on utilise l'image originale comme placeholder
+          const transparentImageUrl = firstImage.url;
+          
+          // ÉTAPE 2: Injecter l'image PNG transparente sur le site
+          injectImageOnSite(transparentImageUrl);
+          
+          setInjectedImageUrl(transparentImageUrl);
+          setIsVisible(true);
+          
+          // Mettre à jour le cache
+          setCachedImageData({
+            processedUrl: transparentImageUrl,
+            sourceImageUrl: firstImage.url,
+            selectedIndex: parseInt(firstImageIndex),
+            isShadowMode: true // Marqueur pour différencier du cache Pixian
+          });
+          
+        } else {
+          // TRAITEMENT PIXIAN STANDARD (bouton vert) - appel API
+          console.log('[ProductTypeSelector] Mode Pixian standard - appel API');
+          
+          // ÉTAPE 1: Traiter l'image avec Pixian SANS marges
+          const processedImageUrl = await processImageWithPixianNoMargins(firstImage.url);
+          
+          // ÉTAPE 2: Injecter l'image sur le site
+          injectImageOnSite(processedImageUrl);
+          
+          setInjectedImageUrl(processedImageUrl);
+          setIsVisible(true);
+          
+          // Mettre à jour le cache
+          setCachedImageData({
+            processedUrl: processedImageUrl,
+            sourceImageUrl: firstImage.url,
+            selectedIndex: parseInt(firstImageIndex),
+            isShadowMode: false
+          });
+        }
         
         // ÉTAPE 3: Appliquer les marges courantes immédiatement
         setTimeout(() => {
