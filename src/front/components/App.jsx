@@ -6,7 +6,7 @@ import '../styles/ProductTypeSelector.css';
 import Header from './Header';
 import ImageStats from './ImageStats';
 import ImageGrid from './ImageGrid';
-import ProductTypeSelector from './ProductTypeSelector/index.jsx';
+import ProductTypeSelector from './ProductTypeSelector';
 import FooterBar from './FooterBar';
 import FileInput from './FileInput';
 import SkeletonGrid from './SkeletonGrid';
