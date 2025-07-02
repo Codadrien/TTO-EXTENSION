@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/ProductTypeSelector.css';
 
 /**
@@ -44,6 +44,13 @@ function ProductTypeSelector({
   const [isVisible, setIsVisible] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [injectedImageUrl, setInjectedImageUrl] = useState(null);
+  
+  // Cache pour éviter les appels API inutiles
+  const [cachedImageData, setCachedImageData] = useState({
+    processedUrl: null,
+    sourceImageUrl: null,
+    selectedIndex: null
+  });
 
   // Marges prédéfinies par type (synchronisées avec background/marginConfig.js)
   const predefinedMargins = {
@@ -65,11 +72,21 @@ function ProductTypeSelector({
       onMarginsChange && onMarginsChange(null);
     }
 
-    // TOUJOURS appliquer les nouvelles marges visuellement (avec ou sans injection)
-    // Passer explicitement le nouveau type pour éviter les problèmes de timing
-    setTimeout(() => {
-      applyVisualMargins(typeId);
-    }, 50);
+    // Si l'image est injectée, appliquer les nouvelles marges immédiatement
+    if (injectedImageUrl) {
+      setTimeout(() => {
+        // Obtenir les marges du nouveau type
+        let newMargins;
+        if (typeId === 'custom') {
+          newMargins = margins; // Garder les marges custom actuelles
+        } else {
+          newMargins = predefinedMargins[typeId] || predefinedMargins.default;
+        }
+        
+        updateInjectedImageMargins(newMargins);
+        console.log('[ProductTypeSelector] Marges appliquées pour nouveau type:', typeId, newMargins);
+      }, 50);
+    }
   };
 
   // Gestion du changement de marge
@@ -85,8 +102,8 @@ function ProductTypeSelector({
       onMarginsChange && onMarginsChange(newMargins);
     }
 
-    // Si l'image est visible, mettre à jour l'injection en temps réel
-    if (isVisible && injectedImageUrl) {
+    // Si l'image est injectée (peu importe si visible ou non), mettre à jour le padding
+    if (injectedImageUrl) {
       updateInjectedImageMargins(newMargins);
     }
   };
@@ -229,7 +246,17 @@ function ProductTypeSelector({
     }
   };
 
-  // Fonction pour supprimer les superpositions
+  // Fonction pour masquer/afficher les superpositions (sans les supprimer)
+  const toggleImageOverlaysVisibility = (visible) => {
+    const containers = document.querySelectorAll('.tto-image-container');
+    containers.forEach(container => {
+      container.style.display = visible ? 'flex' : 'none';
+    });
+    
+    console.log(`[ProductTypeSelector] Superpositions ${visible ? 'affichées' : 'masquées'}`);
+  };
+
+  // Fonction pour supprimer définitivement les superpositions (pour changement d'image)
   const removeImageOverlays = () => {
     const containers = document.querySelectorAll('.tto-image-container');
     containers.forEach(container => container.remove());
@@ -237,74 +264,85 @@ function ProductTypeSelector({
     // Nettoyer les marges stockées
     delete window.ttoCurrentMargins;
     
-    console.log('[ProductTypeSelector] Superpositions supprimées');
+    console.log('[ProductTypeSelector] Superpositions supprimées définitivement');
   };
 
-  // Fonction pour appliquer les marges en temps réel avec CSS PADDING pour l'affichage
-  const applyVisualMargins = (overrideType = null) => {
-    // Obtenir les marges actuelles selon le type sélectionné (ou le type passé en paramètre)
-    const typeToUse = overrideType || selectedType;
-    let currentMargins;
-    if (typeToUse === 'custom') {
-      currentMargins = margins;
-    } else {
-      currentMargins = predefinedMargins[typeToUse] || predefinedMargins.default;
-    }
+  // Fonction pour nettoyer le cache quand on change d'image
+  const clearImageCache = () => {
+    removeImageOverlays();
+    setInjectedImageUrl(null);
+    setCachedImageData({
+      processedUrl: null,
+      sourceImageUrl: null,
+      selectedIndex: null
+    });
+    setIsVisible(false);
+    console.log('[ProductTypeSelector] Cache d\'image nettoyé');
+  };
 
-    console.log('[ProductTypeSelector] Application des marges:', currentMargins);
-
-    // CAS 1: Si l'image est injectée, appliquer le PADDING CSS visuel
-    if (isVisible && injectedImageUrl) {
-      const overlayImages = document.querySelectorAll('.tto-image-overlay');
-      overlayImages.forEach(overlayImg => {
-        overlayImg.style.padding = `${currentMargins.top || 0}% ${currentMargins.right || 0}% ${currentMargins.bottom || 0}% ${currentMargins.left || 0}%`;
-      });
-      console.log('[ProductTypeSelector] PADDING visuel appliqué sur images injectées');
-    }
-
-    // CAS 2: TOUJOURS stocker les valeurs pour l'export final API Pixian (format pourcentage)
-    window.ttoCurrentMargins = {
-      top: currentMargins.top || 0,    // Garder en % (ex: 8.5)
-      right: currentMargins.right || 0,
-      bottom: currentMargins.bottom || 0,
-      left: currentMargins.left || 0
-    };
+  // Effect pour détecter le changement d'image sélectionnée et nettoyer le cache
+  useEffect(() => {
+    const firstImage = getFirstSelectedImage();
+    const firstImageIndex = Object.entries(selectedOrder)
+      .find(([idx, order]) => order === 1)?.[0];
     
-    console.log('[ProductTypeSelector] Valeurs stockées pour export API (pourcentages):', window.ttoCurrentMargins);
-  };
+    // Si une nouvelle image est sélectionnée et qu'on a un cache
+    if (cachedImageData.processedUrl && firstImage && firstImageIndex !== undefined) {
+      const currentImageUrl = firstImage.url;
+      const currentIndex = parseInt(firstImageIndex);
+      
+      // Si l'image ou l'index a changé, nettoyer le cache
+      if (cachedImageData.sourceImageUrl !== currentImageUrl || 
+          cachedImageData.selectedIndex !== currentIndex) {
+        console.log('[ProductTypeSelector] Changement d\'image détecté - nettoyage du cache');
+        clearImageCache();
+      }
+    }
+  }, [selectedOrder, images]); // Surveiller les changements de sélection
 
   // Fonction pour mettre à jour les marges de l'image injectée (appelée lors des changements)
   const updateInjectedImageMargins = (newMargins) => {
-    if (!isVisible) return;
-    
-    // Appliquer le PADDING CSS pour l'affichage visuel
+    // Toujours mettre à jour le padding, même si pas visible (pour garder l'état)
     const overlayImages = document.querySelectorAll('.tto-image-overlay');
     overlayImages.forEach(overlayImg => {
       overlayImg.style.padding = `${newMargins.top || 0}% ${newMargins.right || 0}% ${newMargins.bottom || 0}% ${newMargins.left || 0}%`;
     });
     
-    // Stocker les valeurs comme MARGINS pour l'export final API Pixian (format pourcentage)
+    // Stocker les valeurs pour l'export final API Pixian
     window.ttoCurrentMargins = {
-      top: newMargins.top || 0,    // Garder en % (ex: 10)
+      top: newMargins.top || 0,
       right: newMargins.right || 0,
       bottom: newMargins.bottom || 0,
       left: newMargins.left || 0
     };
     
-    console.log('[ProductTypeSelector] PADDING appliqué visuellement:', newMargins);
-    console.log('[ProductTypeSelector] POURCENTAGES stockés pour API:', window.ttoCurrentMargins);
+    console.log('[ProductTypeSelector] PADDING mis à jour:', newMargins);
+  };
+
+  // Fonction utilitaire pour vérifier si on peut réutiliser l'image en cache
+  const canReuseCache = (currentImageUrl, currentIndex) => {
+    if (!cachedImageData.processedUrl) return false;
+    
+    // Vérifier si l'image source est la même
+    if (cachedImageData.sourceImageUrl !== currentImageUrl) return false;
+    
+    // Vérifier si l'index sélectionné est le même
+    if (cachedImageData.selectedIndex !== currentIndex) return false;
+    
+    // Plus de vérification des marges car l'image détourée reste identique
+    return true;
   };
 
   // Gestion du clic sur le bouton "Visible"
   const handleVisibleToggle = async () => {
     if (isVisible) {
-      // Désactiver la visibilité
+      // Masquer l'image (mais la garder injectée)
       setIsVisible(false);
-      removeImageOverlays();
-      setInjectedImageUrl(null);
+      toggleImageOverlaysVisibility(false);
       
       // Informer le parent que le bouton "Visible" est désactivé
       onVisibleStateChange && onVisibleStateChange(false);
+      console.log('[ProductTypeSelector] Image masquée (gardée injectée)');
       return;
     }
 
@@ -327,27 +365,57 @@ function ProductTypeSelector({
     try {
       setIsProcessing(true);
       
-      // ÉTAPE 1: Traiter l'image avec Pixian SANS marges (premier export)
-      console.log('[ProductTypeSelector] ÉTAPE 1: Traitement Pixian sans marges');
-      const processedImageUrl = await processImageWithPixianNoMargins(firstImage.url);
+      // Vérifier si l'image est déjà injectée (cache)
+      if (canReuseCache(firstImage.url, parseInt(firstImageIndex))) {
+        // L'image est déjà injectée, juste l'afficher
+        console.log('[ProductTypeSelector] Image déjà injectée - affichage simple');
+        
+        toggleImageOverlaysVisibility(true);
+        setIsVisible(true);
+        
+        onVisibleStateChange && onVisibleStateChange(true);
+        console.log('[ProductTypeSelector] Image réaffichée (déjà injectée)');
+        
+      } else {
+        // Première injection - appel API nécessaire
+        console.log('[ProductTypeSelector] Première injection - appel API');
+        
+        // ÉTAPE 1: Traiter l'image avec Pixian SANS marges
+        const processedImageUrl = await processImageWithPixianNoMargins(firstImage.url);
+        
+        // ÉTAPE 2: Injecter l'image sur le site
+        injectImageOnSite(processedImageUrl);
+        
+        setInjectedImageUrl(processedImageUrl);
+        setIsVisible(true);
+        
+        // Mettre à jour le cache
+        setCachedImageData({
+          processedUrl: processedImageUrl,
+          sourceImageUrl: firstImage.url,
+          selectedIndex: parseInt(firstImageIndex)
+        });
+        
+        // ÉTAPE 3: Appliquer les marges courantes immédiatement
+        setTimeout(() => {
+          // Obtenir les marges actuelles
+          let currentMargins;
+          if (selectedType === 'custom') {
+            currentMargins = margins;
+          } else {
+            currentMargins = predefinedMargins[selectedType] || predefinedMargins.default;
+          }
+          
+          // Appliquer le padding
+          updateInjectedImageMargins(currentMargins);
+          
+          console.log('[ProductTypeSelector] Marges initiales appliquées:', currentMargins);
+        }, 100);
+        
+        onVisibleStateChange && onVisibleStateChange(true);
+        console.log('[ProductTypeSelector] Image injectée avec succès');
+      }
       
-      // ÉTAPE 2: Injecter l'image sur le site (sans marges)
-      console.log('[ProductTypeSelector] ÉTAPE 2: Injection de l\'image sans marges');
-      injectImageOnSite(processedImageUrl);
-      
-      setInjectedImageUrl(processedImageUrl);
-      setIsVisible(true);
-      
-      // ÉTAPE 3: Appliquer les marges visuellement en temps réel
-      console.log('[ProductTypeSelector] ÉTAPE 3: Application des marges visuelles');
-      setTimeout(() => {
-        applyVisualMargins();
-      }, 100); // Petit délai pour s'assurer que l'injection est terminée
-      
-      // Informer le parent que le bouton "Visible" est maintenant actif
-      onVisibleStateChange && onVisibleStateChange(true);
-      
-      console.log('[ProductTypeSelector] Image visible activée avec succès - marges appliquées visuellement');
     } catch (error) {
       console.error('[ProductTypeSelector] Erreur lors de l\'activation:', error);
       alert('Erreur lors du traitement de l\'image: ' + error.message);
