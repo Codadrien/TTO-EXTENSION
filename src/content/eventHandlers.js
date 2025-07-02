@@ -106,6 +106,30 @@ export function registerChromeMessageListener() {
       }));
     }
   });
+
+  // Écouteur pour les demandes de stockage des presets
+  document.addEventListener('TTO_STORAGE_REQUEST', (event) => {
+    const { type, presets } = event.detail || {};
+    
+    try {
+      chrome.runtime.sendMessage({
+        type: 'storage_request',
+        storageType: type,
+        data: presets
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[contentScript] Erreur runtime lors du stockage:', chrome.runtime.lastError);
+        } else if (response) {
+          // Renvoyer la réponse à l'interface
+          document.dispatchEvent(new CustomEvent('TTO_STORAGE_RESPONSE', {
+            detail: response
+          }));
+        }
+      });
+    } catch (e) {
+      console.error('[contentScript] Impossible d\'envoyer la demande de stockage', e);
+    }
+  });
 }
 
 /**

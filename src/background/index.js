@@ -68,8 +68,48 @@ chrome.action.onClicked.addListener((tab) => {
   chrome.scripting.executeScript({ target: { tabId: tab.id }, func: toggleTTO });
 });
 
-// Listener pour les messages de téléchargement
+// Listener pour les messages de téléchargement et stockage
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  
+  // Gestion des demandes de stockage des presets
+  if (message.type === 'storage_request') {
+    console.log('[background] Demande de stockage reçue:', message.storageType);
+    
+    (async () => {
+      try {
+        if (message.storageType === 'LOAD_PRESETS') {
+          // Charger les presets depuis chrome.storage
+          const result = await chrome.storage.local.get(['tto_custom_presets']);
+          const presets = result.tto_custom_presets || [];
+          console.log('[background] Presets chargés:', presets);
+          
+          sendResponse({
+            type: 'LOAD_PRESETS_RESPONSE',
+            presets: presets,
+            success: true
+          });
+          
+        } else if (message.storageType === 'SAVE_PRESETS') {
+          // Sauvegarder les presets dans chrome.storage
+          await chrome.storage.local.set({ tto_custom_presets: message.data });
+          console.log('[background] Presets sauvegardés:', message.data);
+          
+          sendResponse({
+            type: 'SAVE_PRESETS_RESPONSE',
+            success: true
+          });
+        }
+      } catch (error) {
+        console.error('[background] Erreur lors de l\'opération de stockage:', error);
+        sendResponse({
+          success: false,
+          error: error.message
+        });
+      }
+    })();
+    
+    return true; // Indique que sendResponse sera appelé de manière asynchrone
+  }
   if (message.type === 'process_pixian_preview') {
     console.log('[background] Traitement Pixian pour prévisualisation demandé');
     const { imageUrl, productType = 'default', customMargins = null } = message;

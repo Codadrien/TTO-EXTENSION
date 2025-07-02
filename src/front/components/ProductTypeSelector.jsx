@@ -22,13 +22,12 @@ function ProductTypeSelector({
   processImages = [],
   onVisibleStateChange
 }) {
-  // Types de produits disponibles
+  // Types de produits disponibles (suppression de 'shoes')
   const productTypes = [
     { id: 'default', label: 'Standard' },
     { id: 'textile', label: 'Textile' },
     { id: 'pantalon', label: 'Pantalon' },
     { id: 'accessoires', label: 'Accessoires' },
-    { id: 'shoes', label: 'Chaussures' },
     { id: 'custom', label: 'Custom' }
   ];
 
@@ -52,21 +51,94 @@ function ProductTypeSelector({
     selectedIndex: null
   });
 
-  // Marges prédéfinies par type (synchronisées avec background/marginConfig.js)
+  // États pour la gestion des presets
+  const [showCustomControls, setShowCustomControls] = useState(false);
+  const [showPresetDropdown, setShowPresetDropdown] = useState(false);
+  const [savedPresets, setSavedPresets] = useState([]);
+  const [presetName, setPresetName] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+  // Marges prédéfinies par type (suppression de 'shoes')
   const predefinedMargins = {
     default: { top: 5, right: 5, bottom: 5, left: 5 },        // 0.05 * 100
     textile: { top: 8.5, right: 8.5, bottom: 8.5, left: 8.5 }, // 0.085 * 100
     pantalon: { top: 3.2, right: 3.2, bottom: 3.2, left: 3.2 }, // 0.032 * 100
-    accessoires: { top: 16, right: 16, bottom: 16, left: 16 },  // 0.16 * 100
-    shoes: { top: 0, right: 8, bottom: 26, left: 8 }           // 0.00, 0.08, 0.26, 0.08 * 100
+    accessoires: { top: 16, right: 16, bottom: 16, left: 16 }  // 0.16 * 100
   };
+
+  // Fonctions de gestion du stockage des presets via messaging
+  const loadPresetsFromStorage = async () => {
+    try {
+      return new Promise((resolve) => {
+        const handleResponse = (event) => {
+          if (event.detail.type === 'LOAD_PRESETS_RESPONSE') {
+            const presets = event.detail.presets || [];
+            setSavedPresets(presets);
+            console.log('[ProductTypeSelector] Presets chargés:', presets);
+            document.removeEventListener('TTO_STORAGE_RESPONSE', handleResponse);
+            resolve();
+          }
+        };
+
+        document.addEventListener('TTO_STORAGE_RESPONSE', handleResponse);
+        document.dispatchEvent(new CustomEvent('TTO_STORAGE_REQUEST', { 
+          detail: { type: 'LOAD_PRESETS' } 
+        }));
+
+        // Timeout de sécurité
+        setTimeout(() => {
+          document.removeEventListener('TTO_STORAGE_RESPONSE', handleResponse);
+          resolve();
+        }, 2000);
+      });
+    } catch (error) {
+      console.error('[ProductTypeSelector] Erreur lors du chargement des presets:', error);
+    }
+  };
+
+  const savePresetsToStorage = async (presets) => {
+    try {
+      return new Promise((resolve) => {
+        const handleResponse = (event) => {
+          if (event.detail.type === 'SAVE_PRESETS_RESPONSE') {
+            console.log('[ProductTypeSelector] Presets sauvegardés avec succès');
+            document.removeEventListener('TTO_STORAGE_RESPONSE', handleResponse);
+            resolve();
+          }
+        };
+
+        document.addEventListener('TTO_STORAGE_RESPONSE', handleResponse);
+        document.dispatchEvent(new CustomEvent('TTO_STORAGE_REQUEST', { 
+          detail: { type: 'SAVE_PRESETS', presets: presets } 
+        }));
+
+        // Timeout de sécurité
+        setTimeout(() => {
+          document.removeEventListener('TTO_STORAGE_RESPONSE', handleResponse);
+          resolve();
+        }, 2000);
+      });
+    } catch (error) {
+      console.error('[ProductTypeSelector] Erreur lors de la sauvegarde des presets:', error);
+    }
+  };
+
+  // Charger les presets au démarrage
+  useEffect(() => {
+    loadPresetsFromStorage();
+  }, []);
 
   // Gestion du changement de type de produit
   const handleTypeChange = (typeId) => {
     onTypeChange(typeId);
     
-    // Si un type prédéfini est sélectionné, effacer les marges personnalisées
-    if (typeId !== 'custom') {
+    // Afficher les contrôles custom si "custom" est sélectionné
+    if (typeId === 'custom') {
+      setShowCustomControls(true);
+    } else {
+      setShowCustomControls(false);
+      setShowPresetDropdown(false);
+      // Effacer les marges personnalisées pour les types prédéfinis
       const resetMargins = { top: '', right: '', bottom: '', left: '' };
       setMargins(resetMargins);
       onMarginsChange && onMarginsChange(null);
@@ -106,6 +178,50 @@ function ProductTypeSelector({
     if (injectedImageUrl) {
       updateInjectedImageMargins(newMargins);
     }
+  };
+
+  // Sauvegarder un preset
+  const handleSavePreset = async () => {
+    if (!presetName.trim()) {
+      alert('Veuillez entrer un nom pour le preset');
+      return;
+    }
+
+    const newPreset = {
+      id: Date.now(),
+      name: presetName.trim(),
+      margins: { ...margins }
+    };
+
+    const updatedPresets = [...savedPresets, newPreset];
+    setSavedPresets(updatedPresets);
+    await savePresetsToStorage(updatedPresets);
+    
+    setPresetName('');
+    setShowSaveDialog(false);
+    console.log('[ProductTypeSelector] Preset sauvegardé:', newPreset);
+  };
+
+  // Charger un preset
+  const handleLoadPreset = (preset) => {
+    setMargins(preset.margins);
+    onMarginsChange && onMarginsChange(preset.margins);
+    setShowPresetDropdown(false);
+    
+    // Si l'image est injectée, appliquer les nouvelles marges
+    if (injectedImageUrl) {
+      updateInjectedImageMargins(preset.margins);
+    }
+    
+    console.log('[ProductTypeSelector] Preset chargé:', preset);
+  };
+
+  // Supprimer un preset
+  const handleDeletePreset = async (presetId) => {
+    const updatedPresets = savedPresets.filter(preset => preset.id !== presetId);
+    setSavedPresets(updatedPresets);
+    await savePresetsToStorage(updatedPresets);
+    console.log('[ProductTypeSelector] Preset supprimé:', presetId);
   };
 
   // Fonction pour obtenir l'image sélectionnée #1
@@ -453,54 +569,121 @@ function ProductTypeSelector({
         )}
       </div>
 
-      {/* Inputs pour marges personnalisées */}
-      {selectedType === 'custom' && (
-        <div className="custom-margins">
-          <div className="custom-margins-label">Marges personnalisées (%):</div>
-          <div className="margins-inputs">
-            <div className="margin-input-group">
-              <label>Haut:</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={margins.top}
-                onChange={(e) => handleMarginChange('top', e.target.value)}
-                placeholder="0"
-              />
+      {/* Contrôles Custom étendus */}
+      {showCustomControls && (
+        <div className="custom-controls">
+          <div className="custom-controls-header">
+            <button
+              className="save-preset-btn"
+              onClick={() => setShowSaveDialog(true)}
+              title="Sauvegarder ce preset"
+            >
+              💾
+            </button>
+            <button
+              className="dropdown-toggle-btn"
+              onClick={() => setShowPresetDropdown(!showPresetDropdown)}
+              title="Liste des presets"
+            >
+              ˅
+            </button>
+          </div>
+
+          {/* Liste déroulante des presets */}
+          {showPresetDropdown && (
+            <div className="preset-dropdown">
+              {savedPresets.length === 0 ? (
+                <div className="preset-item empty">Aucun preset sauvegardé</div>
+              ) : (
+                savedPresets.map(preset => (
+                  <div key={preset.id} className="preset-item">
+                    <span 
+                      className="preset-name"
+                      onClick={() => handleLoadPreset(preset)}
+                    >
+                      {preset.name}
+                    </span>
+                    <button
+                      className="delete-preset-btn"
+                      onClick={() => handleDeletePreset(preset.id)}
+                      title="Supprimer ce preset"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
-            <div className="margin-input-group">
-              <label>Droite:</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={margins.right}
-                onChange={(e) => handleMarginChange('right', e.target.value)}
-                placeholder="0"
-              />
+          )}
+
+          {/* Dialog de sauvegarde */}
+          {showSaveDialog && (
+            <div className="save-dialog">
+              <div className="save-dialog-content">
+                <label>Nom du preset:</label>
+                <input
+                  type="text"
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  placeholder="Entrer le nom..."
+                  onKeyPress={(e) => e.key === 'Enter' && handleSavePreset()}
+                />
+                <div className="save-dialog-buttons">
+                  <button onClick={handleSavePreset}>Sauvegarder</button>
+                  <button onClick={() => setShowSaveDialog(false)}>Annuler</button>
+                </div>
+              </div>
             </div>
-            <div className="margin-input-group">
-              <label>Bas:</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={margins.bottom}
-                onChange={(e) => handleMarginChange('bottom', e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            <div className="margin-input-group">
-              <label>Gauche:</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={margins.left}
-                onChange={(e) => handleMarginChange('left', e.target.value)}
-                placeholder="0"
-              />
+          )}
+
+          {/* Inputs pour marges personnalisées */}
+          <div className="custom-margins">
+            <div className="custom-margins-label">Marges personnalisées (%):</div>
+            <div className="margins-inputs">
+              <div className="margin-input-group">
+                <label>Haut:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={margins.top}
+                  onChange={(e) => handleMarginChange('top', e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="margin-input-group">
+                <label>Droite:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={margins.right}
+                  onChange={(e) => handleMarginChange('right', e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="margin-input-group">
+                <label>Bas:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={margins.bottom}
+                  onChange={(e) => handleMarginChange('bottom', e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="margin-input-group">
+                <label>Gauche:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={margins.left}
+                  onChange={(e) => handleMarginChange('left', e.target.value)}
+                  placeholder="0"
+                />
+              </div>
             </div>
           </div>
         </div>
