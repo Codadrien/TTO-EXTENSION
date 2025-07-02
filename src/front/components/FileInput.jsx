@@ -21,7 +21,7 @@ const FileInput = forwardRef(({ onFileImport }, ref) => {
       type="file" 
       ref={fileInputRef} 
       onChange={onFileImport} 
-      accept=".zip,.jpg,.jpeg,.png,.gif,.webp,.avif,.svg" 
+      accept=".zip,.jpg,.jpeg,.jfif,.png,.gif,.webp,.avif,.svg,image/*,*" 
       style={{ display: 'none' }}
       multiple 
     />

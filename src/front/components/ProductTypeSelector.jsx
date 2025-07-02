@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Hourglass, Save, ChevronDown } from 'lucide-react';
 import '../styles/ProductTypeSelector.css';
+import OpacitySlider from './ProductTypeSelector/components/OpacitySlider.jsx';
+import { useOpacity } from './ProductTypeSelector/hooks/useOpacity.js';
 
 /**
  * Composant ProductTypeSelector - Permet de sélectionner le type de produit et configurer les marges
@@ -47,6 +49,13 @@ function ProductTypeSelector({
   const [isProcessing, setIsProcessing] = useState(false);
   const [injectedImageUrl, setInjectedImageUrl] = useState(null);
   
+  // Hook pour l'opacité
+  const {
+    opacity,
+    handleOpacityChange,
+    resetOpacity
+  } = useOpacity(100);
+
   // Cache pour éviter les appels API inutiles
   const [cachedImageData, setCachedImageData] = useState({
     processedUrl: null,
@@ -130,6 +139,13 @@ function ProductTypeSelector({
   useEffect(() => {
     loadPresetsFromStorage();
   }, []);
+
+  // Remettre l'opacité à 100% quand l'image n'est plus visible
+  useEffect(() => {
+    if (!isVisible) {
+      resetOpacity();
+    }
+  }, [isVisible, resetOpacity]);
 
   // Gestion du changement de type de produit
   const handleTypeChange = (typeId) => {
@@ -609,6 +625,13 @@ function ProductTypeSelector({
         <div className="product-type-label">Type de produit:</div>
         {/* Bouton Visible */}
         <div className="visible-button-container">
+          {isVisible && (
+            <OpacitySlider 
+              opacity={opacity}
+              onOpacityChange={handleOpacityChange}
+              disabled={false}
+            />
+          )}
           {isVisible && (
             <span className="visible-status">Image injectée</span>
           )}

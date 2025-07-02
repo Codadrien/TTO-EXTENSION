@@ -5,11 +5,13 @@ import '../styles/ProductTypeSelector.css';
 import { useMargins } from './hooks/useMargins.js';
 import { usePresets } from './hooks/usePresets.js';
 import { useImageInjection } from './hooks/useImageInjection.js';
+import { useOpacity } from './hooks/useOpacity.js';
 
 // Composants
 import VisibleButton from './components/VisibleButton.jsx';
 import ProductTypeOptions from './components/ProductTypeOptions.jsx';
 import CustomControls from './components/CustomControls.jsx';
+import OpacitySlider from './components/OpacitySlider.jsx';
 
 // Constantes
 import { PREDEFINED_MARGINS, TIMEOUTS } from './constants.js';
@@ -64,10 +66,24 @@ function ProductTypeSelectorRefactored({
     handleVisibleToggle
   } = useImageInjection(images, selectedOrder, processImages, shadowProcessImages, onVisibleStateChange);
 
+  // Hook pour l'opacité
+  const {
+    opacity,
+    handleOpacityChange,
+    resetOpacity
+  } = useOpacity(100);
+
   // Mettre à jour le hook des marges avec l'URL de l'image injectée
   React.useEffect(() => {
     // Cette logique devrait être dans le hook useMargins mais pour simplifier...
   }, [injectedImageUrl]);
+
+  // Remettre l'opacité à 100% quand l'image n'est plus visible
+  React.useEffect(() => {
+    if (!isVisible) {
+      resetOpacity();
+    }
+  }, [isVisible, resetOpacity]);
 
   // Gestion du changement de type de produit
   const handleTypeChange = (typeId) => {
@@ -123,6 +139,11 @@ function ProductTypeSelectorRefactored({
     <div className="product-type-selector">
       <div className="product-type-header">
         <div className="product-type-label">Type de produit:</div>
+        <OpacitySlider 
+          opacity={opacity}
+          onOpacityChange={handleOpacityChange}
+          disabled={!isVisible}
+        />
         <VisibleButton 
           isVisible={isVisible}
           isProcessing={isProcessing}

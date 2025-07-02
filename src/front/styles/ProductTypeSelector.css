@@ -13,12 +13,50 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+  gap: 15px;
 }
 
 .product-type-label {
   font-weight: bold;
   color: #495057;
   font-size: 14px;
+}
+
+/* Slider d'opacité */
+.opacity-slider {
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: #ddd;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 10px;
+}
+
+.opacity-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #8B5CF6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.opacity-slider::-webkit-slider-thumb:hover {
+  background: #7C3AED;
+  transform: scale(1.1);
+}
+
+.opacity-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.opacity-slider:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+  background: #ccc;
 }
 
 .product-type-options {

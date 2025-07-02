@@ -7,7 +7,7 @@ import JSZip from 'jszip';
  * Formats d'image supportés
  * @type {string[]}
  */
-const SUPPORTED_IMAGE_FORMATS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg'];
+const SUPPORTED_IMAGE_FORMATS = ['jpg', 'jpeg', 'jfif', 'png', 'gif', 'webp', 'avif', 'svg'];
 
 /**
  * Vérifie si un fichier est une image supportée basée sur son extension
@@ -65,8 +65,8 @@ function getImageDimensions(url) {
 function detectImageFormat(filename) {
   const extension = filename.split('.').pop().toLowerCase();
   
-  // Normalise certaines extensions
-  if (extension === 'jpg') return 'jpeg';
+  // Normalise certaines extensions vers JPEG
+  if (extension === 'jpg' || extension === 'jfif') return 'jpeg';
   
   return extension;
 }
