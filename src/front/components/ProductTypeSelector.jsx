@@ -325,7 +325,7 @@ function ProductTypeSelector({
         if (!parent) return;
 
         // Lire le padding du parent
-        const parentPadding = getComputedStyle(parent).padding;
+        const parentPadding = window.getComputedStyle(parent).padding;
 
         // Créer un conteneur pour la superposition
         const container = document.createElement('div');
@@ -371,7 +371,7 @@ function ProductTypeSelector({
         container.appendChild(overlayImg);
 
         // S'assurer que le parent est positionné
-        const parentStyle = getComputedStyle(parent);
+        const parentStyle = window.getComputedStyle(parent);
         if (parentStyle.position === 'static') {
           parent.style.position = 'relative';
         }
