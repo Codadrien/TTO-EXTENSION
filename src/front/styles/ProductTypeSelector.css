@@ -8,9 +8,15 @@
   border: 1px solid #e9ecef;
 }
 
+.product-type-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 .product-type-label {
   font-weight: bold;
-  margin-bottom: 8px;
   color: #495057;
   font-size: 14px;
 }
@@ -48,27 +54,24 @@
 
 /* Section du bouton Visible */
 .visible-button-container {
-  margin-bottom: 12px;
-  padding: 8px;
-  background: #ffffff;
-  border-radius: 6px;
-  border: 1px solid #dee2e6;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .visible-button {
-  padding: 6px 16px;
+  padding: 6px;
   background: #6c757d;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: bold;
   transition: all 0.2s ease;
-  min-width: 80px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .visible-button:hover:not(:disabled) {
@@ -89,7 +92,16 @@
   background: #ffc107;
   color: #212529;
   cursor: not-allowed;
-  animation: pulse 1.5s infinite;
+  animation: float 1.5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px); 
+  }
+  50% { 
+    transform: translateY(-3px); 
+  }
 }
 
 .visible-button:disabled {
@@ -104,12 +116,13 @@
 }
 
 .visible-status {
-  font-size: 12px;
+  font-size: 11px;
   color: #28a745;
   font-weight: 500;
   display: flex;
   align-items: center;
   gap: 4px;
+  margin-right: 6px;
 }
 
 .visible-status::before {
@@ -131,26 +144,32 @@
   position: relative;
 }
 
+.custom-margins-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
 .custom-controls-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  justify-content: flex-end;
+  gap: 6px;
 }
 
 .save-preset-btn {
-  padding: 6px 10px;
+  padding: 6px;
   background: #28a745;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
+  height: 28px;
 }
 
 .save-preset-btn:hover {
@@ -159,16 +178,15 @@
 }
 
 .dropdown-toggle-btn {
-  padding: 6px 12px;
+  padding: 6px;
   background: #6c757d;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  transition: all 0.2s ease;
-  min-width: 35px;
+  transition: all 0.3s ease;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,10 +197,20 @@
   transform: translateY(-1px);
 }
 
+.dropdown-toggle-btn.open {
+  transform: rotate(180deg);
+  background: #495057;
+}
+
+.dropdown-toggle-btn.open:hover {
+  background: #343a40;
+  transform: rotate(180deg) translateY(1px);
+}
+
 /* Liste déroulante des presets */
 .preset-dropdown {
   position: absolute;
-  top: 50px;
+  top: 60px;
   right: 0;
   background: white;
   border: 1px solid #dee2e6;
@@ -192,6 +220,18 @@
   min-width: 200px;
   max-height: 200px;
   overflow-y: auto;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .preset-item {
@@ -337,7 +377,6 @@
 
 .custom-margins-label {
   font-weight: bold;
-  margin-bottom: 8px;
   color: #495057;
   font-size: 13px;
 }
@@ -396,7 +435,7 @@
     grid-template-columns: 1fr;
   }
 
-  .visible-button-container {
+  .product-type-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;

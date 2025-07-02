@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, Hourglass, Save, ChevronDown } from 'lucide-react';
 import '../styles/ProductTypeSelector.css';
 
 /**
@@ -542,7 +543,29 @@ function ProductTypeSelector({
 
   return (
     <div className="product-type-selector">
-      <div className="product-type-label">Type de produit:</div>
+      <div className="product-type-header">
+        <div className="product-type-label">Type de produit:</div>
+        {/* Bouton Visible */}
+        <div className="visible-button-container">
+          {isVisible && (
+            <span className="visible-status">Image injectée</span>
+          )}
+          <button
+            className={`visible-button ${isVisible ? 'active' : ''} ${isProcessing ? 'processing' : ''}`}
+            onClick={handleVisibleToggle}
+            disabled={isProcessing}
+            title={isProcessing ? 'Traitement en cours...' : isVisible ? 'Masquer l\'image' : 'Afficher l\'image sur le site'}
+          >
+            {isProcessing ? (
+              <Hourglass size={16} />
+            ) : isVisible ? (
+              <EyeOff size={16} />
+            ) : (
+              <Eye size={16} />
+            )}
+          </button>
+        </div>
+      </div>
       <div className="product-type-options">
         {productTypes.map(type => (
           <div 
@@ -555,39 +578,9 @@ function ProductTypeSelector({
         ))}
       </div>
 
-      {/* Bouton Visible */}
-      <div className="visible-button-container">
-        <button
-          className={`visible-button ${isVisible ? 'active' : ''} ${isProcessing ? 'processing' : ''}`}
-          onClick={handleVisibleToggle}
-          disabled={isProcessing}
-        >
-          {isProcessing ? 'Traitement...' : isVisible ? 'Masquer' : 'Visible'}
-        </button>
-        {isVisible && (
-          <span className="visible-status">Image injectée sur le site</span>
-        )}
-      </div>
-
       {/* Contrôles Custom étendus */}
       {showCustomControls && (
         <div className="custom-controls">
-          <div className="custom-controls-header">
-            <button
-              className="save-preset-btn"
-              onClick={() => setShowSaveDialog(true)}
-              title="Sauvegarder ce preset"
-            >
-              💾
-            </button>
-            <button
-              className="dropdown-toggle-btn"
-              onClick={() => setShowPresetDropdown(!showPresetDropdown)}
-              title="Liste des presets"
-            >
-              ˅
-            </button>
-          </div>
 
           {/* Liste déroulante des presets */}
           {showPresetDropdown && (
@@ -638,7 +631,25 @@ function ProductTypeSelector({
 
           {/* Inputs pour marges personnalisées */}
           <div className="custom-margins">
-            <div className="custom-margins-label">Marges personnalisées (%):</div>
+            <div className="custom-margins-header">
+              <div className="custom-margins-label">Marges personnalisées (%):</div>
+              <div className="custom-controls-header">
+                <button
+                  className="save-preset-btn"
+                  onClick={() => setShowSaveDialog(true)}
+                  title="Sauvegarder ce preset"
+                >
+                  <Save size={16} />
+                </button>
+                <button
+                  className={`dropdown-toggle-btn ${showPresetDropdown ? 'open' : ''}`}
+                  onClick={() => setShowPresetDropdown(!showPresetDropdown)}
+                  title="Liste des presets"
+                >
+                  <ChevronDown size={16} />
+                </button>
+              </div>
+            </div>
             <div className="margins-inputs">
               <div className="margin-input-group">
                 <label>Haut:</label>
