@@ -7,6 +7,14 @@ import { collectAllUrls, filterAndEnrichImages } from './imageScraper.js';
  * Listener pour messages Chrome, répond de manière asynchrone.
  */
 export function registerChromeMessageListener() {
+  // Protection contre les multiples registrations
+  if (window.ttoListenersRegistered) {
+    console.log('[eventHandlers] Listeners déjà enregistrés, éviter les doublons');
+    return;
+  }
+  window.ttoListenersRegistered = true;
+  console.log('[eventHandlers] Enregistrement des listeners...');
+
   // Toujours garder le listener Chrome pour la compatibilité
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'SCRAPE_IMAGES') {

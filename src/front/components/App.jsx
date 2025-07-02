@@ -170,8 +170,9 @@ function App() {
     console.log('[App] Début du téléchargement de', selectedIndices.length, 'images avec productType:', productType, 'et marges:', marginsToUse);
     
     // Prépare les données pour le téléchargement
+    // IMPORTANT: Toujours utiliser l'URL ORIGINALE de l'image, jamais l'URL blob du détourage préliminaire
     const entries = selectedIndices.map(idx => ({
-      ...images[idx],
+      ...images[idx], // Contient l'URL originale de l'image
       processType: processImages.includes(idx) ? 'pixian' : 
                    shoesProcessImages.includes(idx) ? 'shoes' : 
                    shadowProcessImages.includes(idx) ? 'shadow_transparent' : 'resize',

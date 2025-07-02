@@ -77,7 +77,18 @@ export async function callPixianAPI(imageBlob, originalName, options = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`Pixian ${response.status}`);
+    // Essayer de lire le message d'erreur de Pixian
+    let errorMessage = `Pixian ${response.status}`;
+    try {
+      const errorText = await response.text();
+      console.error(`[pixianService] Erreur Pixian ${response.status}:`, errorText);
+      if (errorText) {
+        errorMessage += `: ${errorText}`;
+      }
+    } catch (e) {
+      console.error(`[pixianService] Impossible de lire l'erreur Pixian:`, e);
+    }
+    throw new Error(errorMessage);
   }
 
   return await response.blob();
@@ -93,6 +104,7 @@ export async function callPixianAPI(imageBlob, originalName, options = {}) {
  */
 export async function processWithPixianByProductType(imageBlob, originalName, productType = 'default', customMargins = null) {
   console.log(`[pixianService] Traitement Pixian pour type: ${productType}`);
+  console.log(`[pixianService] Image blob size: ${imageBlob.size} bytes, type: ${imageBlob.type}`);
   console.log(`[pixianService] Marges personnalisées reçues:`, customMargins);
   
   // Obtenir la configuration de marges (la validation se fait dans getMarginConfig)
