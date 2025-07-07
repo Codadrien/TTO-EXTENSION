@@ -29,12 +29,6 @@ export const MARGIN_CONFIGS = {
     right: 0.16,   // 16%
     bottom: 0.16,  // 16%
     left: 0.16     // 16%
-  },
-  shoes: {
-    top: 0.00,     // 0%
-    right: 0.08,   // 8% (valeur originale)
-    bottom: 0.26,  // 26% (valeur originale)
-    left: 0.08     // 8%
   }
 };
 

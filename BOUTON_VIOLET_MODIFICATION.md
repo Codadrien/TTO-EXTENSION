@@ -102,7 +102,7 @@ ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
 ## Migration
 
 Le changement est **rétrocompatible** :
-- L'ancien traitement `shoes_with_shadow` est toujours disponible
+- Le traitement `shoes_with_shadow` est maintenant accessible via le bouton violet
 - Le nouveau traitement `shadow_transparent` fonctionne en parallèle
 - Les composants existants continuent de fonctionner
 

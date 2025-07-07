@@ -222,9 +222,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Log des paramètres de traitement
           console.log(`[background] Traitement: ${processType}, Type: ${productType}, Marges:`, customMargins);
           
-          // Choix du traitement selon le type (pixian avec productType, shoes avec ombre, PNG transparent ou resize)
+          // Choix du traitement selon le type (pixian avec productType, PNG transparent avec ombre, ou resize)
           if (shadowPreservation) {
-            // Traitement avec préservation d'ombre pour chaussures (marges spéciales)
+            // Traitement avec préservation d'ombre (marges spéciales)
             downloadUrl = await processShadowPreservation(url, originalName);
           } else if (transparentPngProcessing) {
             // Traitement avec PNG transparent et marges configurables
@@ -241,7 +241,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           chrome.downloads.download({ url: downloadUrl, filename: downloadFilename }, () => {
             let processTypeLabel = 'Resize';
             if (shadowPreservation) {
-              processTypeLabel = 'Shoes avec ombre';
+              processTypeLabel = 'Sans détourage avec marge';
             } else if (transparentPngProcessing) {
               processTypeLabel = customMargins ? `PNG transparent (${productType} - personnalisé)` : `PNG transparent (${productType})`;
             } else if (needsProcessing) {

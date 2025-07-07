@@ -34,9 +34,6 @@ const styles = `
   .resize-process {
     background-color: #2196F3;
   }
-  .shoes-process {
-    background-color: #FF9800; /* Orange pour le traitement shoes */
-  }
   .shadow-process {
     background-color: #9C27B0; /* Violet pour le traitement avec ombre */
   }
@@ -63,7 +60,6 @@ function App() {
   // States pour la sélection et le traitement
   const [selectedOrder, setSelectedOrder] = useState({});
   const [processImages, setProcessImages] = useState([]);
-  const [shoesProcessImages, setShoesProcessImages] = useState([]);
   const [shadowProcessImages, setShadowProcessImages] = useState([]);
 
   // State pour le nom du dossier
@@ -78,6 +74,9 @@ function App() {
   // State pour l'état du bouton "Visible"
   const [isVisibleActive, setIsVisibleActive] = useState(false);
 
+  // State pour le mode shadow verrouillé
+  const [shadowModeEnabled, setShadowModeEnabled] = useState(false);
+
   // Référence pour l'input file
   const fileInputRef = useRef(null);
 
@@ -88,6 +87,11 @@ function App() {
       if (newOrder[idx]) {
         const removedOrder = newOrder[idx];
         delete newOrder[idx];
+        
+        // Si on désélectionne une image, la retirer aussi des traitements
+        setProcessImages(prevProcess => prevProcess.filter(i => i !== idx));
+        setShadowProcessImages(prevShadow => prevShadow.filter(i => i !== idx));
+        
         Object.keys(newOrder).forEach(key => {
           const k = Number(key);
           if (newOrder[k] > removedOrder) {
@@ -97,6 +101,18 @@ function App() {
       } else {
         const nextOrder = Object.keys(prev).length + 1;
         newOrder[idx] = nextOrder;
+        
+        // Si le mode shadow est verrouillé, ajouter automatiquement en mode shadow
+        if (shadowModeEnabled) {
+          setShadowProcessImages(prevShadow => {
+            if (!prevShadow.includes(idx)) {
+              return [...prevShadow, idx];
+            }
+            return prevShadow;
+          });
+          // S'assurer qu'elle n'est pas dans processImages
+          setProcessImages(prevProcess => prevProcess.filter(i => i !== idx));
+        }
       }
       return newOrder;
     });
@@ -146,7 +162,7 @@ function App() {
       // Reset des sélections
       setSelectedOrder({});
       setProcessImages([]);
-      setShoesProcessImages([]);
+      setShadowProcessImages([]);
       
       console.log('[App] Images importées avec succès:', extractedImages.length);
     } catch (error) {
@@ -189,7 +205,6 @@ function App() {
         ...imageData, // Contient l'URL originale de l'image
         filename: originalFilename || imageData.filename, // Préserve le filename original
         processType: processImages.includes(idx) ? 'pixian' : 
-                     shoesProcessImages.includes(idx) ? 'shoes' : 
                      shadowProcessImages.includes(idx) ? 'shadow_transparent' : 'resize',
         productType: processImages.includes(idx) || shadowProcessImages.includes(idx) ? productType : 'default',
         customMargins: processImages.includes(idx) || shadowProcessImages.includes(idx) ? marginsToUse : null,
@@ -219,6 +234,12 @@ function App() {
    * Fonction pour gérer le clic sur le bouton vert (traitement Pixian standard)
    */
   const handleProcessClick = (idx) => {
+    // Si le mode shadow est verrouillé, ignorer les clics sur le bouton vert
+    if (shadowModeEnabled) {
+      console.log('[App] Mode shadow verrouillé - bouton vert désactivé');
+      return;
+    }
+    
     console.log('[App] Traitement Pixian pour image', idx, 'avec type de produit:', productType);
     setProcessImages(prev => {
       const newProcessImages = [...prev];
@@ -228,28 +249,6 @@ function App() {
       return newProcessImages;
     });
     
-    // Retire de shoesProcessImages si présent
-    setShoesProcessImages(prev => prev.filter(i => i !== idx));
-    
-    // Sélectionne automatiquement l'image
-    if (!selectedOrder[idx]) {
-      handleImageClick(idx);
-    }
-  };
-
-  /**
-   * Fonction pour gérer le clic sur le bouton orange (traitement chaussures)
-   */
-  const handleShoesProcessClick = (idx) => {
-    setShoesProcessImages(prev => {
-      const newShoesImages = prev.includes(idx) 
-        ? prev.filter(i => i !== idx)
-        : [...prev, idx];
-      return newShoesImages;
-    });
-    
-    // Retire de processImages si présent
-    setProcessImages(prev => prev.filter(i => i !== idx));
     // Retire de shadowProcessImages si présent
     setShadowProcessImages(prev => prev.filter(i => i !== idx));
     
@@ -259,25 +258,20 @@ function App() {
     }
   };
   
+
+
   /**
-   * Fonction pour gérer le clic sur le bouton violet (traitement PNG transparent avec injection)
+   * Fonction pour gérer le mode shadow verrouillé
+   * Active/désactive le verrouillage du traitement violet
    */
-  const handleShadowProcessClick = (idx) => {
-    setShadowProcessImages(prev => {
-      const newShadowImages = prev.includes(idx) 
-        ? prev.filter(i => i !== idx)
-        : [...prev, idx];
-      return newShadowImages;
-    });
+  const handleShadowModeChange = (isEnabled) => {
+    setShadowModeEnabled(isEnabled);
+    console.log('[App] Mode shadow verrouillé:', isEnabled);
     
-    // Retire de processImages si présent
-    setProcessImages(prev => prev.filter(i => i !== idx));
-    // Retire de shoesProcessImages si présent
-    setShoesProcessImages(prev => prev.filter(i => i !== idx));
-    
-    // Sélectionne automatiquement l'image
-    if (!selectedOrder[idx]) {
-      handleImageClick(idx);
+    if (!isEnabled) {
+      // Si on désactive le mode, retirer toutes les images du traitement shadow
+      setShadowProcessImages([]);
+      console.log('[App] Mode shadow désactivé - toutes les images retirées du traitement shadow');
     }
   };
 
@@ -411,7 +405,9 @@ function App() {
           selectedOrder={selectedOrder}
           processImages={processImages}
           shadowProcessImages={shadowProcessImages}
+          shadowModeEnabled={shadowModeEnabled}
           onVisibleStateChange={setIsVisibleActive}
+          onShadowModeChange={handleShadowModeChange}
         />
         
         {/* Grille d'images */}
@@ -423,12 +419,10 @@ function App() {
             imageInfos={imageInfos}
             selectedOrder={selectedOrder}
             processImages={processImages}
-            shoesProcessImages={shoesProcessImages}
             shadowProcessImages={shadowProcessImages}
+            shadowModeEnabled={shadowModeEnabled}
             onImageClick={handleImageClick}
             onProcessClick={handleProcessClick}
-            onShoesProcessClick={handleShoesProcessClick}
-            onShadowProcessClick={handleShadowProcessClick}
           />
         )}
       </div>

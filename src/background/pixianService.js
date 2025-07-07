@@ -115,15 +115,10 @@ export async function processWithPixianByProductType(imageBlob, originalName, pr
   
   console.log(`[pixianService] Marges appliquées: ${marginString}`);
   
-  // Configuration spécifique pour les chaussures
   const options = { 
     margin: marginString,
     targetSize: '2000 2000' // Taille forcée pour les traitements normaux
   };
-  if (productType === 'shoes') {
-    options.verticalAlignment = 'bottom';
-    console.log(`[pixianService] Application de verticalAlignment: bottom pour les chaussures`);
-  }
   
   return await callPixianAPI(imageBlob, originalName, options);
 } 

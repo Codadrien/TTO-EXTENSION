@@ -15,7 +15,7 @@ Cette restructuration sépare les différentes logiques de traitement d'images e
   - Point d'entrée public pour tous les traitements
   - Coordonne les appels vers les services spécialisés
   - Maintient l'interface publique existante
-  - **Exports :** `processWithPixian()`, `processWithPixianShoes()`, `processWithShadowPreservation()`, `processWithResize()`, `convertAvifToJpeg()`
+  - **Exports :** `processWithPixian()`, `processWithShadowPreservation()`, `processWithResize()`, `convertAvifToJpeg()`
 
 ### 🎨 Services spécialisés
 
@@ -26,7 +26,7 @@ Cette restructuration sépare les différentes logiques de traitement d'images e
 - **Fonctions principales :**
   - `callPixianAPI()` - Appel générique à l'API
   - `processWithPixianByProductType()` - Traitement selon le type de produit
-  - `processWithPixianShoes()` - Traitement spécifique chaussures
+  
 
 #### **`imageUtils.js`** - Utilitaires d'images (80 lignes)
 - Conversions de format (AVIF → JPEG)
@@ -44,7 +44,7 @@ Cette restructuration sépare les différentes logiques de traitement d'images e
 - Traitements canvas complexes (préservation d'ombre, redimensionnement)
 - **Fonctions principales :**
   - `detectObjectBounds()` - Détection des bords d'objets
-  - `calculateShoeDimensions()` - Calculs de dimensions pour chaussures
+  - `calculateShoeDimensions()` - Calculs de dimensions avec ombres
   - `processWithShadowPreservation()` - Traitement avec préservation d'ombre
   - `processWithResize()` - Redimensionnement simple
 
@@ -88,10 +88,9 @@ imageProcessor.js (orchestrateur)
 
 ## Types de traitement supportés
 
-1. **Pixian standard** - Suppression de fond avec marges par type de produit
-2. **Pixian chaussures** - Suppression de fond avec marges spécifiques chaussures
-3. **Préservation d'ombre** - Traitement canvas avec détection d'objet et marges
-4. **Redimensionnement simple** - Placement dans un carré blanc
+1. **Pixian standard** - Suppression de fond avec marges par type de produit  
+2. **Préservation d'ombre** - Traitement canvas avec détection d'objet et marges
+3. **Redimensionnement simple** - Placement dans un carré blanc
 
 ## Migration
 

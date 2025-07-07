@@ -13,7 +13,7 @@
   min-width: 20px;
   border: 2px solid white;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.3s ease;
 }
 
 .process-buttons-container .process-button:hover {
@@ -23,4 +23,12 @@
 /* Styles pour le bouton shadow */
 .process-buttons-container .shadow-button {
   background-color: #9C27B0; /* Violet */
+}
+
+/* Styles pour le bouton désactivé */
+.process-buttons-container .process-button.disabled,
+.process-buttons-container .process-button:disabled {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
 }

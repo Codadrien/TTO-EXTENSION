@@ -25,7 +25,9 @@ function ProductTypeSelector({
   selectedOrder = {},
   processImages = [],
   shadowProcessImages = [],
-  onVisibleStateChange
+  shadowModeEnabled = false,
+  onVisibleStateChange,
+  onShadowModeChange
 }) {
   // Types de produits disponibles (suppression de 'shoes')
   const productTypes = [
@@ -56,6 +58,21 @@ function ProductTypeSelector({
     resetOpacity
   } = useOpacity(100);
 
+  // Fonction pour gérer le toggle violet (verrouillage du mode shadow)
+  const handleShadowToggleChange = (event) => {
+    // Si l'événement vient de l'input, utiliser checked
+    // Si l'événement vient du container, inverser l'état actuel
+    const isChecked = event.target.type === 'checkbox' 
+      ? event.target.checked 
+      : !shadowModeEnabled;
+    
+    console.log('[ProductTypeSelector] Mode shadow verrouillé:', isChecked);
+    
+    if (onShadowModeChange) {
+      onShadowModeChange(isChecked);
+    }
+  };
+
   // Cache pour éviter les appels API inutiles
   const [cachedImageData, setCachedImageData] = useState({
     processedUrl: null,
@@ -69,6 +86,8 @@ function ProductTypeSelector({
   const [savedPresets, setSavedPresets] = useState([]);
   const [presetName, setPresetName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+
 
   // Marges prédéfinies par type (suppression de 'shoes')
   const predefinedMargins = {
@@ -622,7 +641,25 @@ function ProductTypeSelector({
   return (
     <div className="product-type-selector">
       <div className="product-type-header">
-        <div className="product-type-label">Type de produit:</div>
+        <div className="product-type-label-container">
+          <div className="product-type-label">Type de produit:</div>
+          {/* Toggle violet pour traitement sans détourage avec marge */}
+          <div 
+            className="shadow-toggle-container" 
+            title="Sans détourage avec marge"
+            onClick={handleShadowToggleChange}
+          >
+            <div className="shadow-toggle-switch">
+              <input
+                type="checkbox"
+                className="shadow-toggle-input"
+                checked={shadowModeEnabled}
+                onChange={handleShadowToggleChange}
+              />
+              <span className="shadow-toggle-slider"></span>
+            </div>
+          </div>
+        </div>
         {/* Bouton Visible */}
         <div className="visible-button-container">
           {isVisible && (

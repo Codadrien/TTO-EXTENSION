@@ -22,6 +22,73 @@
   font-size: 14px;
 }
 
+.product-type-label-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+/* Toggle violet pour traitement sans détourage avec marge */
+.shadow-toggle-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.shadow-toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+}
+
+.shadow-toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.shadow-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.shadow-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.shadow-toggle-input:checked + .shadow-toggle-slider {
+  background-color: #9C27B0;
+}
+
+.shadow-toggle-input:checked + .shadow-toggle-slider:before {
+  transform: translateX(16px);
+}
+
+.shadow-toggle-slider:hover {
+  box-shadow: 0 0 8px rgba(156, 39, 176, 0.3);
+}
+
+.shadow-toggle-input:checked + .shadow-toggle-slider:hover {
+  background-color: #7B1FA2;
+}
+
 /* Slider d'opacité */
 .opacity-slider {
   width: 80px;

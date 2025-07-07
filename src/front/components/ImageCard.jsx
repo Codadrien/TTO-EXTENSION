@@ -8,12 +8,9 @@ import ProcessButtons from './ProcessButtons';
  * @param {Object} imageInfos - Informations dynamiques des images (dimensions)
  * @param {Object} selectedOrder - Ordre de sélection des images
  * @param {Array} processImages - Images sélectionnées pour traitement Pixian
- * @param {Array} shoesProcessImages - Images sélectionnées pour traitement chaussures
- * @param {Array} shadowProcessImages - Images sélectionnées pour traitement avec préservation d'ombre
+ * @param {Array} shadowProcessImages - Images sélectionnées pour traitement sans détourage avec marge
  * @param {Function} onImageClick - Fonction appelée lors du clic sur l'image
  * @param {Function} onProcessClick - Fonction appelée lors du clic sur le bouton vert
- * @param {Function} onShoesProcessClick - Fonction appelée lors du clic sur le bouton orange
- * @param {Function} onShadowProcessClick - Fonction appelée lors du clic sur le bouton violet
  */
 function ImageCard({ 
   image, 
@@ -21,31 +18,26 @@ function ImageCard({
   imageInfos, 
   selectedOrder, 
   processImages, 
-  shoesProcessImages,
   shadowProcessImages = [], // Valeur par défaut pour la rétrocompatibilité
+  shadowModeEnabled = false,
   onImageClick,
-  onProcessClick,
-  onShoesProcessClick,
-  onShadowProcessClick = () => {} // Valeur par défaut pour la rétrocompatibilité
+  onProcessClick
 }) {
   const { url, format, weight } = image;
   const isSelected = selectedOrder[idx];
   const isProcessSelected = processImages.includes(idx);
-  const isShoesSelected = shoesProcessImages.includes(idx);
   const isShadowSelected = shadowProcessImages.includes(idx);
 
   // Détermine le type de traitement pour l'indicateur
   const getProcessingType = () => {
     if (isShadowSelected) return 'shadow-process';
-    if (isShoesSelected) return 'shoes-process';
     if (isProcessSelected) return 'pixian-process';
     return 'resize-process';
   };
 
   // Détermine le texte de l'indicateur
   const getProcessingText = () => {
-    if (isShadowSelected) return 'Shoes avec ombre';
-    if (isShoesSelected) return 'Détourage + Shoes marges';
+    if (isShadowSelected) return 'Sans détourage avec marge';
     if (isProcessSelected) return 'Détourage auto';
     return 'Resize + compression';
   };
@@ -56,14 +48,13 @@ function ImageCard({
       <div className="process-buttons-column">
         <ProcessButtons 
           onProcessClick={() => onProcessClick(idx)}
-          onShoesProcessClick={() => onShoesProcessClick(idx)}
-          onShadowProcessClick={() => onShadowProcessClick(idx)}
+          shadowModeEnabled={shadowModeEnabled}
         />
       </div>
       
       {/* L'image */}
       <img
-        className={`image-item ${isSelected ? 'selected-image' : ''} ${isProcessSelected ? 'selected-process' : ''} ${isShoesSelected ? 'selected-shoes' : ''} ${isShadowSelected ? 'selected-shadow' : ''}`}
+        className={`image-item ${isSelected ? 'selected-image' : ''} ${isProcessSelected ? 'selected-process' : ''} ${isShadowSelected ? 'selected-shadow' : ''}`}
         src={url}
         alt={`Image ${idx + 1}`}
         onClick={() => onImageClick(idx)}
