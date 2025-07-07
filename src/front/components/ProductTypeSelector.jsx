@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Hourglass, Save, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, Hourglass, Save, ChevronDown, RotateCcw } from 'lucide-react';
 import '../styles/ProductTypeSelector.css';
 import OpacitySlider from './ProductTypeSelector/components/OpacitySlider.jsx';
 import { useOpacity } from './ProductTypeSelector/hooks/useOpacity.js';
-import { saveState, STORAGE_KEYS } from '../utils/stateStorage.js';
+import { saveState, loadState, STORAGE_KEYS } from '../utils/stateStorage.js';
 
 /**
  * Composant ProductTypeSelector - Permet de sélectionner le type de produit et configurer les marges
@@ -174,14 +174,20 @@ function ProductTypeSelector({
       // Charger les marges custom sauvegardées
       const loadCustomMargins = async () => {
         try {
-          if (typeof chrome !== 'undefined' && chrome.storage) {
-            const result = await chrome.storage.local.get([STORAGE_KEYS.CUSTOM_MARGINS]);
-            const savedMargins = result[STORAGE_KEYS.CUSTOM_MARGINS];
-            if (savedMargins && typeof savedMargins === 'object') {
-              console.log('[ProductTypeSelector] Marges custom restaurées:', savedMargins);
-              setMargins(savedMargins);
-              onMarginsChange && onMarginsChange(savedMargins);
-            }
+          const savedMargins = await loadState(STORAGE_KEYS.CUSTOM_MARGINS);
+          if (savedMargins && typeof savedMargins === 'object') {
+            console.log('[ProductTypeSelector] Marges custom restaurées:', savedMargins);
+            
+            // Convertir les valeurs numériques en strings pour les inputs (sauf pour les valeurs vides)
+            const displayMargins = {
+              top: savedMargins.top === 0 || savedMargins.top === '' ? '' : String(savedMargins.top),
+              right: savedMargins.right === 0 || savedMargins.right === '' ? '' : String(savedMargins.right),
+              bottom: savedMargins.bottom === 0 || savedMargins.bottom === '' ? '' : String(savedMargins.bottom),
+              left: savedMargins.left === 0 || savedMargins.left === '' ? '' : String(savedMargins.left)
+            };
+            
+            setMargins(displayMargins);
+            onMarginsChange && onMarginsChange(savedMargins); // Envoyer les valeurs numériques au parent
           }
         } catch (error) {
           console.error('[ProductTypeSelector] Erreur lors du chargement des marges custom:', error);
@@ -215,12 +221,11 @@ function ProductTypeSelector({
     } else {
       setShowCustomControls(false);
       setShowPresetDropdown(false);
-      // Effacer les marges personnalisées pour les types prédéfinis
+      // Effacer les marges personnalisées pour les types prédéfinis (mais garder en mémoire)
       const resetMargins = { top: '', right: '', bottom: '', left: '' };
       setMargins(resetMargins);
       onMarginsChange && onMarginsChange(null);
-      // Effacer aussi les marges custom sauvegardées quand on quitte le mode custom
-      saveState(STORAGE_KEYS.CUSTOM_MARGINS, null);
+      // NE PAS effacer les marges custom sauvegardées - on les garde pour y revenir plus tard
     }
 
     // Si l'image est injectée, appliquer les nouvelles marges immédiatement
@@ -262,6 +267,26 @@ function ProductTypeSelector({
     if (injectedImageUrl) {
       updateInjectedImageMargins(newMargins);
     }
+  };
+
+  // Fonction pour remettre toutes les marges à zéro
+  const handleResetMargins = () => {
+    const resetMargins = { top: '', right: '', bottom: '', left: '' };
+    setMargins(resetMargins);
+    
+    // Sauvegarder les marges remises à zéro
+    if (selectedType === 'custom') {
+      const numericResetMargins = { top: 0, right: 0, bottom: 0, left: 0 };
+      saveState(STORAGE_KEYS.CUSTOM_MARGINS, numericResetMargins);
+      onMarginsChange && onMarginsChange(numericResetMargins);
+    }
+
+    // Si l'image est injectée, appliquer les marges nulles
+    if (injectedImageUrl) {
+      updateInjectedImageMargins({ top: 0, right: 0, bottom: 0, left: 0 });
+    }
+    
+    console.log('[ProductTypeSelector] Marges remises à zéro');
   };
 
   // Gestion de la navigation circulaire avec Tab
@@ -867,6 +892,13 @@ function ProductTypeSelector({
                 className="margin-input-compact"
                 tabIndex={4}
               />
+              <button
+                className="reset-margins-btn"
+                onClick={handleResetMargins}
+                title="Remettre toutes les marges à zéro"
+              >
+                <RotateCcw size={14} />
+              </button>
             </div>
           </div>
         </div>

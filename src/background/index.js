@@ -127,6 +127,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             success: true
           });
           
+        } else if (message.storageType === 'LOAD_STATE') {
+          // Charger un état individuel
+          const result = await chrome.storage.local.get([message.key]);
+          const value = result[message.key];
+          console.log(`[background] État chargé: ${message.key} =`, value);
+          
+          sendResponse({
+            type: 'LOAD_STATE_RESPONSE',
+            value: value,
+            success: true
+          });
+          
         } else if (message.storageType === 'LOAD_STATES') {
           // Charger tous les états de l'extension
           const stateKeys = ['tto_selected_preset', 'tto_custom_margins', 'tto_shadow_mode_enabled'];

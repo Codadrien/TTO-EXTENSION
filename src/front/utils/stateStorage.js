@@ -47,21 +47,41 @@ export const saveState = async (key, value) => {
 };
 
 /**
- * Charge un état spécifique depuis chrome.storage.local
+ * Charge un état spécifique depuis chrome.storage.local via le système de messages
  * @param {string} key - Clé de stockage
  * @returns {Promise<*>} - Valeur chargée ou undefined
  */
 export const loadState = async (key) => {
   try {
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      const result = await chrome.storage.local.get([key]);
-      console.log(`[stateStorage] État chargé: ${key} =`, result[key]);
-      return result[key];
-    }
+    return new Promise((resolve) => {
+      const handleResponse = (event) => {
+        if (event.detail.type === 'LOAD_STATE_RESPONSE') {
+          const value = event.detail.value;
+          console.log(`[stateStorage] État chargé: ${key} =`, value);
+          document.removeEventListener('TTO_STORAGE_RESPONSE', handleResponse);
+          resolve(value);
+        }
+      };
+
+      document.addEventListener('TTO_STORAGE_RESPONSE', handleResponse);
+      document.dispatchEvent(new CustomEvent('TTO_STORAGE_REQUEST', { 
+        detail: { 
+          type: 'LOAD_STATE',
+          key: key
+        } 
+      }));
+
+      // Timeout de sécurité
+      setTimeout(() => {
+        document.removeEventListener('TTO_STORAGE_RESPONSE', handleResponse);
+        console.log(`[stateStorage] Timeout pour ${key} - retour undefined`);
+        resolve(undefined);
+      }, 2000);
+    });
   } catch (error) {
     console.error(`[stateStorage] Erreur lors du chargement de ${key}:`, error);
+    return undefined;
   }
-  return undefined;
 };
 
 /**
