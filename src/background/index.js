@@ -1,8 +1,84 @@
 // Background script entry point for Chrome Extension V3
 // Handles Chrome extension listeners and coordinates background services
 
-import { processWithPixian, processWithPixianShoes, processWithResize, processWithShadowPreservation } from './imageProcessor.js';
+import { processWithPixianByProductType, callPixianAPI } from './pixianService.js';
+import { fetchImageBlob, prepareImageBlob, blobToJpegDataUrl, blobToPngDataUrl } from './imageUtils.js';
+import { processWithShadowPreservation, processWithResize, processTransparentPngWithMargins } from './canvasProcessor.js';
 import { toggleTTO } from './panelManager.js';
+import { getMarginConfig } from './marginConfig.js';
+
+// Orchestration des traitements d'images intégrée dans index.js
+
+async function processWithPixian(url, filename, productType = 'default', customMargins = null) {
+  console.log(`[background] Traitement Pixian (${productType}) pour ${filename}`);
+  
+  const blob = await fetchImageBlob(url);
+  const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
+  const processedBlob = await processWithPixianByProductType(preparedBlob, filename, productType, customMargins);
+  return blobToJpegDataUrl(processedBlob);
+}
+
+async function processWithPixianPngTransparent(url, filename) {
+  console.log(`[background] Traitement Pixian PNG transparent pour ${filename}`);
+  
+  const blob = await fetchImageBlob(url);
+  const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
+  
+  // Appel direct à l'API Pixian avec options spécifiques pour PNG transparent
+  // NE PAS inclure targetSize pour éviter le rendu carré
+  const processedBlob = await callPixianAPI(preparedBlob, filename, {
+    margin: '0% 0% 0% 0%',
+    cropToForeground: 'true',
+    // Pas de backgroundColor pour avoir un fond transparent
+    outputFormat: 'png'
+    // PAS de targetSize !
+  });
+  
+  return blobToPngDataUrl(processedBlob);
+}
+
+async function processShadowPreservation(url, filename, maxSize = 2000) {
+  console.log(`[background] Traitement avec préservation d'ombre pour ${filename}`);
+  
+  const blob = await fetchImageBlob(url);
+  const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
+  
+  // Créer un ImageBitmap à partir du blob
+  const img = await createImageBitmap(preparedBlob);
+  const processedBlob = await processWithShadowPreservation(img, maxSize);
+  
+  return blobToJpegDataUrl(processedBlob);
+}
+
+async function processTransparentPng(url, filename, productType = 'default', customMargins = null, maxSize = 2000) {
+  console.log(`[background] Traitement PNG transparent pour ${filename} avec type: ${productType}`);
+  
+  const blob = await fetchImageBlob(url);
+  const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
+  
+  // Obtenir les marges selon le type de produit
+  const margins = getMarginConfig(productType, customMargins);
+  console.log(`[background] Marges appliquées:`, margins);
+  
+  // Créer un ImageBitmap à partir du blob
+  const img = await createImageBitmap(preparedBlob);
+  const processedBlob = await processTransparentPngWithMargins(img, margins, maxSize);
+  
+  return blobToJpegDataUrl(processedBlob);
+}
+
+async function processResize(url, filename, maxSize = 2000) {
+  console.log(`[background] Redimensionnement pour ${filename}`);
+  
+  const blob = await fetchImageBlob(url);
+  const { blob: preparedBlob } = await prepareImageBlob(blob, filename);
+  
+  // Créer un ImageBitmap à partir du blob
+  const img = await createImageBitmap(preparedBlob);
+  const processedBlob = await processWithResize(img, maxSize);
+  
+  return blobToJpegDataUrl(processedBlob);
+}
 
 // Listener principal appelant toggleTTO dans l'onglet actif
 chrome.action.onClicked.addListener((tab) => {
@@ -10,19 +86,94 @@ chrome.action.onClicked.addListener((tab) => {
   chrome.scripting.executeScript({ target: { tabId: tab.id }, func: toggleTTO });
 });
 
-// Listener pour les messages de téléchargement
+// Listener pour les messages de téléchargement et stockage
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  
+  // Gestion des demandes de stockage des presets
+  if (message.type === 'storage_request') {
+    console.log('[background] Demande de stockage reçue:', message.storageType);
+    
+    (async () => {
+      try {
+        if (message.storageType === 'LOAD_PRESETS') {
+          // Charger les presets depuis chrome.storage
+          const result = await chrome.storage.local.get(['tto_custom_presets']);
+          const presets = result.tto_custom_presets || [];
+          console.log('[background] Presets chargés:', presets);
+          
+          sendResponse({
+            type: 'LOAD_PRESETS_RESPONSE',
+            presets: presets,
+            success: true
+          });
+          
+        } else if (message.storageType === 'SAVE_PRESETS') {
+          // Sauvegarder les presets dans chrome.storage
+          await chrome.storage.local.set({ tto_custom_presets: message.data });
+          console.log('[background] Presets sauvegardés:', message.data);
+          
+          sendResponse({
+            type: 'SAVE_PRESETS_RESPONSE',
+            success: true
+          });
+        }
+      } catch (error) {
+        console.error('[background] Erreur lors de l\'opération de stockage:', error);
+        sendResponse({
+          success: false,
+          error: error.message
+        });
+      }
+    })();
+    
+    return true; // Indique que sendResponse sera appelé de manière asynchrone
+  }
+  if (message.type === 'process_pixian_preview') {
+    console.log('[background] Traitement Pixian pour prévisualisation demandé');
+    const { imageUrl, productType = 'default', customMargins = null } = message;
+    
+    (async () => {
+      try {
+        // Génère un nom de fichier temporaire
+        const tempFilename = `preview_${Date.now()}.jpg`;
+        
+        // Si productType est 'no_margins_png', traiter en PNG transparent bord à bord
+        let processedUrl;
+        if (productType === 'no_margins_png') {
+          console.log('[background] Traitement PNG transparent bord à bord demandé');
+          // Traiter en PNG transparent avec marges nulles et crop to foreground
+          processedUrl = await processWithPixianPngTransparent(imageUrl, tempFilename);
+        } else {
+          // Traitement normal avec le type de produit et les marges
+          processedUrl = await processWithPixian(imageUrl, tempFilename, productType, customMargins);
+        }
+        
+        // Envoie la réponse avec l'URL de l'image traitée
+        sendResponse({ success: true, processedImageUrl: processedUrl });
+        
+        console.log('[background] Prévisualisation Pixian terminée avec succès');
+      } catch (error) {
+        console.error('[background] Erreur lors de la prévisualisation Pixian:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    
+    return true; // Indique que sendResponse sera appelé de manière asynchrone
+  }
+
   if (message.type === 'process_and_download') {
     console.log('[background] Téléchargement / traitement demandé');
     const { entries, folderName } = message;
     (async () => {
       for (const entry of entries) {
-        const { url, order, processType, productType = 'default' } = entry;
+        const { url, order, processType, productType = 'default', customMargins = null, filename } = entry;
+        
+
         
         // Détermine le type de traitement basé sur processType
         const needsProcessing = processType === 'pixian';
-        const shoesProcessing = processType === 'shoes';
         const shadowPreservation = processType === 'shoes_with_shadow';
+        const transparentPngProcessing = processType === 'shadow_transparent';
         
         // Crée le chemin complet: date + folder + order
         const date = new Date();
@@ -31,39 +182,73 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const yyyy = date.getFullYear();
         const prefix = order>0? String(order).padStart(2,'0')+'-':'';
         
-        // Récupération du nom original et conversion en .jpg
-        let originalName = url.split('/').pop().split('?')[0] || 'image';
+        // Récupération du nom original depuis la propriété filename si disponible, sinon depuis l'URL
+        let originalName;
+        if (filename) {
+          // Utilise le nom de fichier original importé
+          originalName = filename;
+
+        } else {
+          // Fallback : extrait depuis l'URL (pour les images scrapées)
+          const urlParts = url.split('/');
+          let extractedName = urlParts[urlParts.length - 1];
+          
+          // Supprime les paramètres de requête
+          extractedName = extractedName.split('?')[0];
+          
+          // Si le nom extrait est vide ou trop court, utilise les dernières parties de l'URL
+          if (!extractedName || extractedName.length < 3) {
+            // Prend les 2-3 derniers segments significatifs de l'URL
+            const significantParts = urlParts
+              .filter(part => part && part.length > 2 && !part.includes('.'))
+              .slice(-2);
+            extractedName = significantParts.join('-') || 'image';
+          }
+          
+          // Nettoie le nom (enlève les caractères non autorisés pour les noms de fichiers)
+          extractedName = extractedName.replace(/[<>:"/\\|?*]/g, '-');
+          
+          originalName = extractedName;
+
+        }
         
         // Force l'extension en .jpg
         originalName = originalName.replace(/\.[^.]+$/, '') + '.jpg';
         
-        const filename = `${dd} ${mm} ${yyyy}/${folderName.trim()}/${prefix}${originalName}`;
+        const downloadFilename = `${dd} ${mm} ${yyyy}/${folderName.trim()}/${prefix}${originalName}`;
         try {
           let downloadUrl;
           
-          // Choix du traitement selon le type (shoes, pixian standard, shoes avec ombre ou resize)
+          // Log des paramètres de traitement
+          console.log(`[background] Traitement: ${processType}, Type: ${productType}, Marges:`, customMargins);
+          
+          // Choix du traitement selon le type (pixian avec productType, shoes avec ombre, PNG transparent ou resize)
           if (shadowPreservation) {
             // Traitement avec préservation d'ombre pour chaussures (marges spéciales)
-            downloadUrl = await processWithShadowPreservation(url, originalName);
-          } else if (shoesProcessing) {
-            // Traitement avec Pixian spécifique pour chaussures (marges spéciales)
-            downloadUrl = await processWithPixianShoes(url, originalName);
+            downloadUrl = await processShadowPreservation(url, originalName);
+          } else if (transparentPngProcessing) {
+            // Traitement avec PNG transparent et marges configurables
+            downloadUrl = await processTransparentPng(url, originalName, productType, customMargins);
           } else if (needsProcessing) {
-            // Traitement avec Pixian standard (suppression de fond) avec le type de produit
-            downloadUrl = await processWithPixian(url, originalName, productType);
+            // Traitement avec Pixian standard (suppression de fond) avec le type de produit et marges personnalisées
+            downloadUrl = await processWithPixian(url, originalName, productType, customMargins);
           } else {
             // Traitement simple avec redimensionnement
-            downloadUrl = await processWithResize(url, originalName);
+            downloadUrl = await processResize(url, originalName);
           }
           
           // Télécharge l'image traitée
-          chrome.downloads.download({ url: downloadUrl, filename }, () => {
+          chrome.downloads.download({ url: downloadUrl, filename: downloadFilename }, () => {
             let processTypeLabel = 'Resize';
-            if (shadowPreservation) processTypeLabel = 'Shoes avec ombre';
-            else if (shoesProcessing) processTypeLabel = 'Shoes';
-            else if (needsProcessing) processTypeLabel = 'Pixian';
+            if (shadowPreservation) {
+              processTypeLabel = 'Shoes avec ombre';
+            } else if (transparentPngProcessing) {
+              processTypeLabel = customMargins ? `PNG transparent (${productType} - personnalisé)` : `PNG transparent (${productType})`;
+            } else if (needsProcessing) {
+              processTypeLabel = customMargins ? `Pixian (${productType} - personnalisé)` : `Pixian (${productType})`;
+            }
             
-            console.log(`[background] Image téléchargée: ${filename} (${processTypeLabel})`);
+            console.log(`[background] Image téléchargée: ${downloadFilename} (${processTypeLabel})`);
           });
           
           // Petit délai humain

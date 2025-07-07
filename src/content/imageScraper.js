@@ -141,17 +141,39 @@ export function scrapCdn(urlString, maxSize = 2000) {
  * @returns {Promise<{url:string,format:string,weight:number|null}[]>}
  */
 export async function filterAndEnrichImages(urls, threshold = 300, areaThreshold = 150000) {
-  const cdnUrls = urls.map(url => scrapCdn(url));
-  const measures = await Promise.all(cdnUrls.map(url =>
+  const measures = await Promise.all(urls.map((originalUrl, index) =>
     new Promise(resolve => {
-      const img = new Image(); img.src = url;
+      const optimizedUrl = scrapCdn(originalUrl);
+      const img = new Image();
+      
       img.onload = () => resolve({ 
-        url, 
+        url: originalUrl, 
         width: img.naturalWidth, 
         height: img.naturalHeight,
         area: img.naturalWidth * img.naturalHeight 
       });
-      img.onerror = () => resolve(null);
+      
+      img.onerror = () => {
+        // Si l'URL optimisée échoue ET qu'elle est différente de l'originale, essayer l'originale
+        if (optimizedUrl !== originalUrl) {
+          console.log(`[filterAndEnrichImages] URL optimisée échouée, essai URL originale pour l'item ${index + 1}`);
+          const imgFallback = new Image();
+          
+          imgFallback.onload = () => resolve({ 
+            url: originalUrl, 
+            width: imgFallback.naturalWidth, 
+            height: imgFallback.naturalHeight,
+            area: imgFallback.naturalWidth * imgFallback.naturalHeight 
+          });
+          
+          imgFallback.onerror = () => resolve(null);
+          imgFallback.src = originalUrl;
+        } else {
+          resolve(null);
+        }
+      };
+      
+      img.src = optimizedUrl;
     })
   ));
   

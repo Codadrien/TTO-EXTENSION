@@ -53,6 +53,7 @@ function App() {
   const FORCE_SKELETON = false;
   // States pour la gestion des images
   const [images, setImages] = useState([]);
+  const [originalImageFilenames, setOriginalImageFilenames] = useState({});
   const [imageInfos, setImageInfos] = useState({});
   const [imagesFromZip, setImagesFromZip] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
@@ -70,6 +71,12 @@ function App() {
   
   // State pour le type de produit sélectionné
   const [productType, setProductType] = useState('default');
+
+  // State pour les marges personnalisées
+  const [customMargins, setCustomMargins] = useState(null);
+
+  // State pour l'état du bouton "Visible"
+  const [isVisibleActive, setIsVisibleActive] = useState(false);
 
   // Référence pour l'input file
   const fileInputRef = useRef(null);
@@ -121,6 +128,15 @@ function App() {
         extractedImages = await processImageFiles(files, 500);
       }
       
+      // Stocker les filenames originaux pour les préserver
+      const filenameMap = {};
+      extractedImages.forEach((img, index) => {
+        if (img.filename) {
+          filenameMap[img.url] = img.filename;
+        }
+      });
+      setOriginalImageFilenames(prev => ({ ...prev, ...filenameMap }));
+      
       // Met à jour les states
       setImages(extractedImages);
       setImagesFromZip(files.length === 1 && files[0].name.toLowerCase().endsWith('.zip'));
@@ -154,17 +170,32 @@ function App() {
       return;
     }
     
-    console.log('[App] Début du téléchargement de', selectedIndices.length, 'images avec productType:', productType);
+    // Déterminer les marges à utiliser : celles du bouton "Visible" si actif, sinon celles du state
+    let marginsToUse = customMargins;
+    if (isVisibleActive && window.ttoCurrentMargins) {
+      marginsToUse = window.ttoCurrentMargins;
+      console.log('[App] Utilisation des marges du bouton "Visible":', marginsToUse);
+    }
+    
+    console.log('[App] Début du téléchargement de', selectedIndices.length, 'images avec productType:', productType, 'et marges:', marginsToUse);
     
     // Prépare les données pour le téléchargement
-    const entries = selectedIndices.map(idx => ({
-      ...images[idx],
-      processType: processImages.includes(idx) ? 'pixian' : 
-                   shoesProcessImages.includes(idx) ? 'shoes' : 
-                   shadowProcessImages.includes(idx) ? 'shoes_with_shadow' : 'resize',
-      productType: processImages.includes(idx) ? productType : 'default',
-      order: selectedOrder[idx]
-    }));
+    // IMPORTANT: Toujours utiliser l'URL ORIGINALE de l'image, jamais l'URL blob du détourage préliminaire
+    const entries = selectedIndices.map(idx => {
+      const imageData = images[idx];
+      const originalFilename = originalImageFilenames[imageData.url];
+      
+      return {
+        ...imageData, // Contient l'URL originale de l'image
+        filename: originalFilename || imageData.filename, // Préserve le filename original
+        processType: processImages.includes(idx) ? 'pixian' : 
+                     shoesProcessImages.includes(idx) ? 'shoes' : 
+                     shadowProcessImages.includes(idx) ? 'shadow_transparent' : 'resize',
+        productType: processImages.includes(idx) || shadowProcessImages.includes(idx) ? productType : 'default',
+        customMargins: processImages.includes(idx) || shadowProcessImages.includes(idx) ? marginsToUse : null,
+        order: selectedOrder[idx]
+      };
+    });
     
     console.log('[App] Données préparées pour le téléchargement:', entries);
     
@@ -229,7 +260,7 @@ function App() {
   };
   
   /**
-   * Fonction pour gérer le clic sur le bouton violet (traitement avec préservation d'ombre)
+   * Fonction pour gérer le clic sur le bouton violet (traitement PNG transparent avec injection)
    */
   const handleShadowProcessClick = (idx) => {
     setShadowProcessImages(prev => {
@@ -265,6 +296,18 @@ function App() {
   const handleImagesUpdate = (event) => {
     if (event.detail && event.detail.images) {
       const { images: newImages, totalCount: newTotal, largeCount: newLarge } = event.detail;
+      
+      // Préserver les filenames originaux lors des mises à jour depuis le content script
+      const filenameMap = {};
+      newImages.forEach((img) => {
+        if (img.filename) {
+          filenameMap[img.url] = img.filename;
+        }
+      });
+      if (Object.keys(filenameMap).length > 0) {
+        setOriginalImageFilenames(prev => ({ ...prev, ...filenameMap }));
+      }
+      
       setImages(newImages);
       setTotalCount(newTotal);
       setLargeCount(newLarge);
@@ -362,6 +405,13 @@ function App() {
         <ProductTypeSelector 
           selectedType={productType}
           onTypeChange={setProductType}
+          customMargins={customMargins}
+          onMarginsChange={setCustomMargins}
+          images={images}
+          selectedOrder={selectedOrder}
+          processImages={processImages}
+          shadowProcessImages={shadowProcessImages}
+          onVisibleStateChange={setIsVisibleActive}
         />
         
         {/* Grille d'images */}

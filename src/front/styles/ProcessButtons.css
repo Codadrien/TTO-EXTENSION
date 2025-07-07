@@ -20,11 +20,7 @@
   transform: scale(1.1);
 }
 
-/* Styles pour les différents types de boutons */
-.process-buttons-container .shoes-button {
-  background-color: #FF9800; /* Orange */
-}
-
+/* Styles pour le bouton shadow */
 .process-buttons-container .shadow-button {
   background-color: #9C27B0; /* Violet */
 }

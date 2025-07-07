@@ -17,13 +17,6 @@ function SkeletonGrid({ count = 6 }) {
               {/* Bouton vert pour traitement standard */}
               <button className="process-button" title="Traitement standard"></button>
               
-              {/* Bouton orange pour traitement chaussures */}
-              <button 
-                className="process-button shoes-button" 
-                style={{ backgroundColor: '#FF9800' }}
-                title="Traitement chaussures"
-              ></button>
-              
               {/* Bouton violet pour traitement avec ombre */}
               <button 
                 className="process-button shadow-button" 
