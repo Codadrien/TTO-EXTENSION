@@ -208,6 +208,24 @@ function ProductTypeSelector({
     }
   }, [isVisible, resetOpacity]);
 
+  // Effect pour appliquer les marges du preset lors du changement de type (notamment lors de la restauration)
+  useEffect(() => {
+    if (selectedType && selectedType !== 'custom') {
+      // Pour les presets prédéfinis, appliquer leurs marges automatiquement
+      const presetMargins = predefinedMargins[selectedType] || predefinedMargins.default;
+      
+      console.log('[ProductTypeSelector] Application automatique des marges pour le preset:', selectedType, presetMargins);
+      
+      // Envoyer les marges du preset au parent
+      onMarginsChange && onMarginsChange(presetMargins);
+      
+      // Si l'image est injectée, appliquer les marges immédiatement
+      if (injectedImageUrl) {
+        updateInjectedImageMargins(presetMargins);
+      }
+    }
+  }, [selectedType, onMarginsChange, injectedImageUrl]);
+
   // Gestion du changement de type de produit
   const handleTypeChange = (typeId) => {
     onTypeChange(typeId);
@@ -221,11 +239,18 @@ function ProductTypeSelector({
     } else {
       setShowCustomControls(false);
       setShowPresetDropdown(false);
-      // Effacer les marges personnalisées pour les types prédéfinis (mais garder en mémoire)
+      
+      // Pour les presets prédéfinis, appliquer leurs marges
+      const presetMargins = predefinedMargins[typeId] || predefinedMargins.default;
+      
+      // Effacer les marges dans l'interface (inputs vides pour les presets)
       const resetMargins = { top: '', right: '', bottom: '', left: '' };
       setMargins(resetMargins);
-      onMarginsChange && onMarginsChange(null);
-      // NE PAS effacer les marges custom sauvegardées - on les garde pour y revenir plus tard
+      
+      // Mais envoyer les vraies marges du preset au parent
+      onMarginsChange && onMarginsChange(presetMargins);
+      
+      console.log('[ProductTypeSelector] Preset sélectionné:', typeId, 'avec marges:', presetMargins);
     }
 
     // Si l'image est injectée, appliquer les nouvelles marges immédiatement
