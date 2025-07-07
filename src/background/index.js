@@ -166,7 +166,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { entries, folderName } = message;
     (async () => {
       for (const entry of entries) {
-        const { url, order, processType, productType = 'default', customMargins = null } = entry;
+        const { url, order, processType, productType = 'default', customMargins = null, filename } = entry;
+        
+
         
         // Détermine le type de traitement basé sur processType
         const needsProcessing = processType === 'pixian';
@@ -180,13 +182,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const yyyy = date.getFullYear();
         const prefix = order>0? String(order).padStart(2,'0')+'-':'';
         
-        // Récupération du nom original et conversion en .jpg
-        let originalName = url.split('/').pop().split('?')[0] || 'image';
+        // Récupération du nom original depuis la propriété filename si disponible, sinon depuis l'URL
+        let originalName;
+        if (filename) {
+          // Utilise le nom de fichier original importé
+          originalName = filename;
+
+        } else {
+          // Fallback : extrait depuis l'URL (pour les images scrapées)
+          const urlParts = url.split('/');
+          let extractedName = urlParts[urlParts.length - 1];
+          
+          // Supprime les paramètres de requête
+          extractedName = extractedName.split('?')[0];
+          
+          // Si le nom extrait est vide ou trop court, utilise les dernières parties de l'URL
+          if (!extractedName || extractedName.length < 3) {
+            // Prend les 2-3 derniers segments significatifs de l'URL
+            const significantParts = urlParts
+              .filter(part => part && part.length > 2 && !part.includes('.'))
+              .slice(-2);
+            extractedName = significantParts.join('-') || 'image';
+          }
+          
+          // Nettoie le nom (enlève les caractères non autorisés pour les noms de fichiers)
+          extractedName = extractedName.replace(/[<>:"/\\|?*]/g, '-');
+          
+          originalName = extractedName;
+
+        }
         
         // Force l'extension en .jpg
         originalName = originalName.replace(/\.[^.]+$/, '') + '.jpg';
         
-        const filename = `${dd} ${mm} ${yyyy}/${folderName.trim()}/${prefix}${originalName}`;
+        const downloadFilename = `${dd} ${mm} ${yyyy}/${folderName.trim()}/${prefix}${originalName}`;
         try {
           let downloadUrl;
           
@@ -209,7 +238,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           
           // Télécharge l'image traitée
-          chrome.downloads.download({ url: downloadUrl, filename }, () => {
+          chrome.downloads.download({ url: downloadUrl, filename: downloadFilename }, () => {
             let processTypeLabel = 'Resize';
             if (shadowPreservation) {
               processTypeLabel = 'Shoes avec ombre';
@@ -219,7 +248,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               processTypeLabel = customMargins ? `Pixian (${productType} - personnalisé)` : `Pixian (${productType})`;
             }
             
-            console.log(`[background] Image téléchargée: ${filename} (${processTypeLabel})`);
+            console.log(`[background] Image téléchargée: ${downloadFilename} (${processTypeLabel})`);
           });
           
           // Petit délai humain
