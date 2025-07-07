@@ -3,6 +3,7 @@ import { Eye, EyeOff, Hourglass, Save, ChevronDown } from 'lucide-react';
 import '../styles/ProductTypeSelector.css';
 import OpacitySlider from './ProductTypeSelector/components/OpacitySlider.jsx';
 import { useOpacity } from './ProductTypeSelector/hooks/useOpacity.js';
+import { saveState, STORAGE_KEYS } from '../utils/stateStorage.js';
 
 /**
  * Composant ProductTypeSelector - Permet de sélectionner le type de produit et configurer les marges
@@ -159,6 +160,41 @@ function ProductTypeSelector({
     loadPresetsFromStorage();
   }, []);
 
+  // Debug: surveiller les changements de selectedType
+  useEffect(() => {
+    console.log('[ProductTypeSelector] selectedType reçu:', selectedType);
+  }, [selectedType]);
+
+  // Restaurer les marges custom quand le selectedType change vers 'custom'
+  useEffect(() => {
+    if (selectedType === 'custom') {
+      // Afficher les contrôles custom
+      setShowCustomControls(true);
+      
+      // Charger les marges custom sauvegardées
+      const loadCustomMargins = async () => {
+        try {
+          if (typeof chrome !== 'undefined' && chrome.storage) {
+            const result = await chrome.storage.local.get([STORAGE_KEYS.CUSTOM_MARGINS]);
+            const savedMargins = result[STORAGE_KEYS.CUSTOM_MARGINS];
+            if (savedMargins && typeof savedMargins === 'object') {
+              console.log('[ProductTypeSelector] Marges custom restaurées:', savedMargins);
+              setMargins(savedMargins);
+              onMarginsChange && onMarginsChange(savedMargins);
+            }
+          }
+        } catch (error) {
+          console.error('[ProductTypeSelector] Erreur lors du chargement des marges custom:', error);
+        }
+      };
+      
+      loadCustomMargins();
+    } else {
+      // Masquer les contrôles custom pour les autres types
+      setShowCustomControls(false);
+    }
+  }, [selectedType, onMarginsChange]);
+
   // Remettre l'opacité à 100% quand l'image n'est plus visible
   useEffect(() => {
     if (!isVisible) {
@@ -170,6 +206,9 @@ function ProductTypeSelector({
   const handleTypeChange = (typeId) => {
     onTypeChange(typeId);
     
+    // Sauvegarder automatiquement le type sélectionné
+    saveState(STORAGE_KEYS.SELECTED_PRESET, typeId);
+    
     // Afficher les contrôles custom si "custom" est sélectionné
     if (typeId === 'custom') {
       setShowCustomControls(true);
@@ -180,6 +219,8 @@ function ProductTypeSelector({
       const resetMargins = { top: '', right: '', bottom: '', left: '' };
       setMargins(resetMargins);
       onMarginsChange && onMarginsChange(null);
+      // Effacer aussi les marges custom sauvegardées quand on quitte le mode custom
+      saveState(STORAGE_KEYS.CUSTOM_MARGINS, null);
     }
 
     // Si l'image est injectée, appliquer les nouvelles marges immédiatement
@@ -205,6 +246,11 @@ function ProductTypeSelector({
     const numericValue = value === '' ? 0 : parseFloat(value) || 0;
     const newMargins = { ...margins, [side]: numericValue };
     setMargins(newMargins);
+    
+    // Sauvegarder automatiquement les marges custom
+    if (selectedType === 'custom') {
+      saveState(STORAGE_KEYS.CUSTOM_MARGINS, newMargins);
+    }
     
     // Envoyer les marges au parent seulement si le type personnalisé est sélectionné
     if (selectedType === 'custom') {

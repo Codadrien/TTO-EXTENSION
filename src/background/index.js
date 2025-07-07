@@ -116,6 +116,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             type: 'SAVE_PRESETS_RESPONSE',
             success: true
           });
+          
+        } else if (message.storageType === 'SAVE_STATE') {
+          // Sauvegarder un état individuel
+          await chrome.storage.local.set({ [message.key]: message.value });
+          console.log(`[background] État sauvegardé: ${message.key} =`, message.value);
+          
+          sendResponse({
+            type: 'SAVE_STATE_RESPONSE',
+            success: true
+          });
+          
+        } else if (message.storageType === 'LOAD_STATES') {
+          // Charger tous les états de l'extension
+          const stateKeys = ['tto_selected_preset', 'tto_custom_margins', 'tto_shadow_mode_enabled'];
+          const result = await chrome.storage.local.get(stateKeys);
+          console.log('[background] États chargés:', result);
+          
+          sendResponse({
+            type: 'LOAD_STATES_RESPONSE',
+            states: result,
+            success: true
+          });
         }
       } catch (error) {
         console.error('[background] Erreur lors de l\'opération de stockage:', error);

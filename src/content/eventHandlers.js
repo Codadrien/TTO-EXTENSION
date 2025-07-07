@@ -115,15 +115,17 @@ export function registerChromeMessageListener() {
     }
   });
 
-  // Écouteur pour les demandes de stockage des presets
+  // Écouteur pour les demandes de stockage des presets et états
   document.addEventListener('TTO_STORAGE_REQUEST', (event) => {
-    const { type, presets } = event.detail || {};
+    const { type, presets, key, value } = event.detail || {};
     
     try {
       chrome.runtime.sendMessage({
         type: 'storage_request',
         storageType: type,
-        data: presets
+        data: presets,
+        key: key,
+        value: value
       }, (response) => {
         if (chrome.runtime.lastError) {
           console.error('[contentScript] Erreur runtime lors du stockage:', chrome.runtime.lastError);

@@ -14,6 +14,7 @@ import SkeletonGrid from './SkeletonGrid';
 // Import des services
 import { extractImagesFromZip, releaseImageBlobUrls, processImageFiles } from '../services/zipService';
 import { getImages } from '../services/apiService';
+import { saveState, loadAllStates, STORAGE_KEYS } from '../utils/stateStorage';
 
 // Style pour les indicateurs de traitement
 const styles = `
@@ -79,6 +80,9 @@ function App() {
 
   // Référence pour l'input file
   const fileInputRef = useRef(null);
+
+  // État pour indiquer si les états ont été restaurés
+  const [statesRestored, setStatesRestored] = useState(false);
 
   // Fonction pour gérer le clic sur une image (sélection standard)
   const handleImageClick = (idx) => {
@@ -268,6 +272,9 @@ function App() {
     setShadowModeEnabled(isEnabled);
     console.log('[App] Mode shadow verrouillé:', isEnabled);
     
+    // Sauvegarder automatiquement l'état du toggle
+    saveState(STORAGE_KEYS.SHADOW_MODE_ENABLED, isEnabled);
+    
     if (!isEnabled) {
       // Si on désactive le mode, retirer toutes les images du traitement shadow
       setShadowProcessImages([]);
@@ -329,6 +336,46 @@ function App() {
       setIsLoading(false); // Arrêter le loading dans tous les cas
     }
   };
+
+  // Restaurer l'état sauvegardé au démarrage
+  useEffect(() => {
+    const restoreStates = async () => {
+      try {
+        console.log('[App] Début de la restauration des états...');
+        const savedStates = await loadAllStates();
+        
+        // Restaurer les états en une seule fois avec un setTimeout pour éviter les problèmes de timing
+        setTimeout(() => {
+          // Restaurer le type de produit sélectionné
+          if (savedStates[STORAGE_KEYS.SELECTED_PRESET]) {
+            console.log('[App] Restauration du type de produit:', savedStates[STORAGE_KEYS.SELECTED_PRESET]);
+            setProductType(savedStates[STORAGE_KEYS.SELECTED_PRESET]);
+          }
+          
+          // Restaurer les marges custom
+          if (savedStates[STORAGE_KEYS.CUSTOM_MARGINS]) {
+            console.log('[App] Restauration des marges custom:', savedStates[STORAGE_KEYS.CUSTOM_MARGINS]);
+            setCustomMargins(savedStates[STORAGE_KEYS.CUSTOM_MARGINS]);
+          }
+          
+          // Restaurer l'état du toggle shadow
+          if (typeof savedStates[STORAGE_KEYS.SHADOW_MODE_ENABLED] === 'boolean') {
+            console.log('[App] Restauration du toggle shadow:', savedStates[STORAGE_KEYS.SHADOW_MODE_ENABLED]);
+            setShadowModeEnabled(savedStates[STORAGE_KEYS.SHADOW_MODE_ENABLED]);
+          }
+          
+          setStatesRestored(true);
+          console.log('[App] États restaurés avec succès:', savedStates);
+        }, 100); // Délai pour laisser le temps aux composants de se monter
+        
+      } catch (error) {
+        console.error('[App] Erreur lors de la restauration des états:', error);
+        setStatesRestored(true); // Permettre le démarrage même en cas d'erreur
+      }
+    };
+    
+    restoreStates();
+  }, []);
 
   // Effect pour charger les images au démarrage et écouter les mises à jour
   useEffect(() => {
