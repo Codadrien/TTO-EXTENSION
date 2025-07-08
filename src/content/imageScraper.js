@@ -134,6 +134,132 @@ export function scrapCdn(urlString, maxSize = 2000) {
 }
 
 /**
+ * Améliore les URLs d'images en supprimant les paramètres de redimensionnement/optimisation
+ * pour obtenir les images en pleine qualité quand c'est possible.
+ * @param {string[]} urls - Liste des URLs originales
+ * @returns {Promise<string[]>} - Liste des URLs améliorées (seules les URLs valides sont ajoutées)
+ */
+export async function enhanceImageUrls(urls) {
+  console.log(`[enhanceImageUrls] Début du traitement de ${urls.length} URLs`);
+  const enhancedUrls = [];
+  let processedCount = 0;
+  let enhancedCount = 0;
+  let validCount = 0;
+  
+  for (const url of urls) {
+    processedCount++;
+    console.log(`[enhanceImageUrls] ${processedCount}/${urls.length} - Traitement de: ${url}`);
+    
+    try {
+      const enhancedUrl = getHighQualityUrl(url);
+      
+      // Si l'URL améliorée est différente de l'originale, vérifier qu'elle fonctionne
+      if (enhancedUrl !== url) {
+        enhancedCount++;
+        console.log(`[enhanceImageUrls] ${processedCount}/${urls.length} - URL sans paramètres: ${enhancedUrl}`);
+        
+        console.log(`[enhanceImageUrls] ${processedCount}/${urls.length} - Vérification de la validité...`);
+        const isValid = await isImageUrlValid(enhancedUrl);
+        
+        if (isValid) {
+          validCount++;
+          enhancedUrls.push(enhancedUrl);
+          console.log(`✅ [enhanceImageUrls] ${processedCount}/${urls.length} - URL valide ajoutée: ${enhancedUrl}`);
+        } else {
+          console.log(`❌ [enhanceImageUrls] ${processedCount}/${urls.length} - URL invalide, ignorée: ${enhancedUrl}`);
+        }
+      } else {
+        console.log(`[enhanceImageUrls] ${processedCount}/${urls.length} - Aucun paramètre trouvé, URL inchangée`);
+      }
+    } catch (error) {
+      console.warn(`[enhanceImageUrls] ${processedCount}/${urls.length} - Erreur lors de l'amélioration de ${url}:`, error);
+    }
+  }
+  
+  console.log(`[enhanceImageUrls] ✅ Traitement terminé:`);
+  console.log(`  - URLs traitées: ${processedCount}`);
+  console.log(`  - URLs avec paramètres trouvées: ${enhancedCount}`);
+  console.log(`  - URLs valides ajoutées: ${validCount}`);
+  console.log(`  - URLs finales retournées: ${enhancedUrls.length}`);
+  
+  return enhancedUrls;
+}
+
+/**
+ * Génère une URL haute qualité en supprimant tous les paramètres d'URL.
+ * @param {string} url - URL originale
+ * @returns {string} - URL sans paramètres
+ */
+function getHighQualityUrl(url) {
+  try {
+    // Simple : supprimer tout ce qui vient après le "?"
+    const questionMarkIndex = url.indexOf('?');
+    if (questionMarkIndex !== -1) {
+      const cleanUrl = url.substring(0, questionMarkIndex);
+      console.log(`[getHighQualityUrl] Paramètres détectés et supprimés:`);
+      console.log(`  - Originale: ${url}`);
+      console.log(`  - Nettoyée: ${cleanUrl}`);
+      return cleanUrl;
+    }
+    console.log(`[getHighQualityUrl] Aucun paramètre détecté dans: ${url}`);
+    return url;
+  } catch (error) {
+    console.warn(`[getHighQualityUrl] Erreur lors du nettoyage de l'URL ${url}:`, error);
+    return url;
+  }
+}
+
+/**
+ * Vérifie si une URL d'image est valide et accessible.
+ * @param {string} url - URL à vérifier
+ * @returns {Promise<boolean>} - true si l'image est accessible
+ */
+async function isImageUrlValid(url) {
+  try {
+    console.log(`[isImageUrlValid] Test de validité: ${url}`);
+    const response = await fetch(url, { 
+      method: 'HEAD',
+      headers: { 
+        'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8' 
+      }
+    });
+    
+    // Vérifier que c'est bien une image et que le statut est OK
+    const contentType = response.headers.get('content-type');
+    const isValid = response.ok && contentType && contentType.startsWith('image/');
+    
+    console.log(`[isImageUrlValid] Résultat:`);
+    console.log(`  - Status: ${response.status} ${response.statusText}`);
+    console.log(`  - Content-Type: ${contentType || 'non défini'}`);
+    console.log(`  - Valide: ${isValid ? '✅ OUI' : '❌ NON'}`);
+    
+    return isValid;
+  } catch (error) {
+    console.log(`[isImageUrlValid] ❌ Erreur de connexion: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Version améliorée de collectAllUrls qui inclut les URLs haute qualité quand disponibles.
+ * @returns {Promise<string[]>}
+ */
+export async function collectAllUrlsEnhanced() {
+  // Récupérer toutes les URLs de base
+  const baseUrls = collectAllUrls();
+  
+  // Essayer d'améliorer la qualité des URLs
+  const enhancedUrls = await enhanceImageUrls(baseUrls);
+  
+  // Combiner les URLs originales et améliorées (en évitant les doublons)
+  const allUrls = Array.from(new Set([...baseUrls, ...enhancedUrls]));
+  
+  console.log(`[collectAllUrlsEnhanced] URLs de base: ${baseUrls.length}, URLs améliorées: ${enhancedUrls.length}, Total: ${allUrls.length}`);
+  
+  return allUrls;
+}
+
+/**
  * Filtre les URLs selon les dimensions et enrichit avec format et poids.
  * @param {string[]} urls
  * @param {number} threshold - Seuil minimum pour les dimensions (défaut: 300)

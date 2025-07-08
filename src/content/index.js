@@ -21,8 +21,8 @@ if (window.ttoContentScriptInjected) {
       return;
     }
     if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      updateImagesData();
+    debounceTimer = setTimeout(async () => {
+      await updateImagesData();
     }, 300); // Attendre 300ms après le dernier clic
   }, { passive: true });
 

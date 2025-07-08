@@ -1,7 +1,7 @@
 // Event handlers for content script
 // Manages Chrome extension messaging and DOM events
 
-import { collectAllUrls, filterAndEnrichImages } from './imageScraper.js';
+import { collectAllUrls, collectAllUrlsEnhanced, filterAndEnrichImages } from './imageScraper.js';
 
 /**
  * Listener pour messages Chrome, répond de manière asynchrone.
@@ -16,9 +16,9 @@ export function registerChromeMessageListener() {
   console.log('[eventHandlers] Enregistrement des listeners...');
 
   // Toujours garder le listener Chrome pour la compatibilité
-  chrome.runtime.onMessage.addListener((msg) => {
+  chrome.runtime.onMessage.addListener(async (msg) => {
     if (msg.type === 'SCRAPE_IMAGES') {
-      const allUrls = collectAllUrls();
+      const allUrls = await collectAllUrlsEnhanced();
       const totalCount = allUrls.length;
       // Utiliser des seuils plus flexibles pour détecter plus d'images
       const threshold = msg.threshold || 300; // Réduit de 500 à 300
@@ -34,8 +34,8 @@ export function registerChromeMessageListener() {
   });
   
   // Ajouter des écouteurs pour les événements personnalisés
-  document.addEventListener('TTO_PANEL_OPENED', () => {
-    const allUrls = collectAllUrls();
+  document.addEventListener('TTO_PANEL_OPENED', async () => {
+    const allUrls = await collectAllUrlsEnhanced();
     const totalCount = allUrls.length;
     // Seuils plus flexibles pour détecter les images avec fond blanc
     filterAndEnrichImages(allUrls, 300, 150000)
@@ -145,9 +145,9 @@ export function registerChromeMessageListener() {
 /**
  * Analyse les images de la page et envoie les résultats à l'UI React
  */
-export function updateImagesData() {
+export async function updateImagesData() {
   if (!document.getElementById('tto-extension-container')) return;
-  const allUrls = collectAllUrls();
+  const allUrls = await collectAllUrlsEnhanced();
   const totalCount = allUrls.length;
   // Utiliser les nouveaux seuils plus flexibles
   filterAndEnrichImages(allUrls, 300, 150000).then(imagesWithFormat => {
