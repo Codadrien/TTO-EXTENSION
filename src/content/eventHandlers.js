@@ -20,9 +20,9 @@ export function registerChromeMessageListener() {
     if (msg.type === 'SCRAPE_IMAGES') {
       const allUrls = await collectAllUrlsEnhanced();
       const totalCount = allUrls.length;
-      // Utiliser des seuils plus flexibles pour détecter plus d'images
-      const threshold = msg.threshold || 300; // Réduit de 500 à 300
-      const areaThreshold = msg.areaThreshold || 150000; // ~387x387px minimum
+      // Utiliser des seuils pour détecter les images de qualité
+      const threshold = msg.threshold || 500; // Remis à 500 comme demandé
+      const areaThreshold = msg.areaThreshold || 200000; // ~448x448px minimum
       filterAndEnrichImages(allUrls, threshold, areaThreshold)
         .then(imagesWithFormat => {
           const largeCount = imagesWithFormat.length;
@@ -37,8 +37,8 @@ export function registerChromeMessageListener() {
   document.addEventListener('TTO_PANEL_OPENED', async () => {
     const allUrls = await collectAllUrlsEnhanced();
     const totalCount = allUrls.length;
-    // Seuils plus flexibles pour détecter les images avec fond blanc
-    filterAndEnrichImages(allUrls, 300, 150000)
+    // Seuils pour détecter les images de qualité 
+    filterAndEnrichImages(allUrls, 500, 200000)
       .then(imagesWithFormat => {
         const largeCount = imagesWithFormat.length;
         const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
@@ -149,8 +149,8 @@ export async function updateImagesData() {
   if (!document.getElementById('tto-extension-container')) return;
   const allUrls = await collectAllUrlsEnhanced();
   const totalCount = allUrls.length;
-  // Utiliser les nouveaux seuils plus flexibles
-  filterAndEnrichImages(allUrls, 300, 150000).then(imagesWithFormat => {
+  // Utiliser les seuils de qualité
+  filterAndEnrichImages(allUrls, 500, 200000).then(imagesWithFormat => {
     const largeCount = imagesWithFormat.length;
     const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
     document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { detail: responsePayload }));

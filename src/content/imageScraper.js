@@ -262,11 +262,11 @@ export async function collectAllUrlsEnhanced() {
 /**
  * Filtre les URLs selon les dimensions et enrichit avec format et poids.
  * @param {string[]} urls
- * @param {number} threshold - Seuil minimum pour les dimensions (défaut: 300)
- * @param {number} areaThreshold - Seuil minimum pour l'aire totale en pixels (défaut: 150000)
+ * @param {number} threshold - Seuil minimum pour les dimensions (défaut: 500)
+ * @param {number} areaThreshold - Seuil minimum pour l'aire totale en pixels (défaut: 200000)
  * @returns {Promise<{url:string,format:string,weight:number|null}[]>}
  */
-export async function filterAndEnrichImages(urls, threshold = 300, areaThreshold = 150000) {
+export async function filterAndEnrichImages(urls, threshold = 500, areaThreshold = 200000) {
   const measures = await Promise.all(urls.map((originalUrl, index) =>
     new Promise(resolve => {
       const optimizedUrl = scrapCdn(originalUrl);
