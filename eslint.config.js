@@ -69,7 +69,12 @@ export default [
         Image: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
-        CustomEvent: 'readonly'
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        CustomEvent: 'readonly',
+        Event: 'readonly',
+        MutationObserver: 'readonly',
+        Node: 'readonly'
       }
     },
     rules: {
