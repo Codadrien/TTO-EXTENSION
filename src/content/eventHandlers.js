@@ -1,7 +1,16 @@
 // Event handlers for content script
 // Manages Chrome extension messaging and DOM events
 
-import { collectAllUrls, collectAllUrlsEnhanced, filterAndEnrichImages } from './imageScraper.js';
+import { collectImagesByMode, filterAndEnrichImages } from './imageScraper.js';
+
+/**
+ * Récupère les URLs selon le mode choisi dans l'interface
+ * @param {boolean} useOptimized - Utiliser le mode optimisé ou non
+ * @returns {string[]} Liste des URLs
+ */
+function getUrlsByMode(useOptimized = false) {
+  return collectImagesByMode(useOptimized);
+}
 
 /**
  * Listener pour messages Chrome, répond de manière asynchrone.
@@ -18,11 +27,12 @@ export function registerChromeMessageListener() {
   // Toujours garder le listener Chrome pour la compatibilité
   chrome.runtime.onMessage.addListener(async (msg) => {
     if (msg.type === 'SCRAPE_IMAGES') {
-      const allUrls = await collectAllUrlsEnhanced();
+      const useOptimized = msg.optimizedMode || false;
+      const allUrls = getUrlsByMode(useOptimized);
       const totalCount = allUrls.length;
-      // Utiliser des seuils pour détecter les images de qualité
-      const threshold = msg.threshold || 500; // Remis à 500 comme demandé
-      const areaThreshold = msg.areaThreshold || 200000; // ~448x448px minimum
+      // Seuils pour filtrer les images de qualité
+      const threshold = msg.threshold || 500;
+      const areaThreshold = msg.areaThreshold || 200000;
       filterAndEnrichImages(allUrls, threshold, areaThreshold)
         .then(imagesWithFormat => {
           const largeCount = imagesWithFormat.length;
@@ -33,9 +43,26 @@ export function registerChromeMessageListener() {
     }
   });
   
+  // Écouter l'état du toggle depuis l'interface
+  document.addEventListener('TTO_ENHANCED_SCRAPING_CHANGED', (event) => {
+    const useOptimized = event.detail?.enabled || false;
+    console.log('[eventHandlers] Mode scraper changé:', useOptimized ? 'optimisé' : 'standard');
+    
+    // Recharger les images avec le nouveau mode
+    const allUrls = getUrlsByMode(useOptimized);
+    const totalCount = allUrls.length;
+    filterAndEnrichImages(allUrls, 500, 200000)
+      .then(imagesWithFormat => {
+        const largeCount = imagesWithFormat.length;
+        const responsePayload = { images: imagesWithFormat, totalCount, largeCount };
+        document.dispatchEvent(new CustomEvent('TTO_IMAGES_DATA', { detail: responsePayload }));
+      });
+  });
+  
   // Ajouter des écouteurs pour les événements personnalisés
   document.addEventListener('TTO_PANEL_OPENED', async () => {
-    const allUrls = await collectAllUrlsEnhanced();
+    // Par défaut utiliser le mode standard
+    const allUrls = getUrlsByMode(false);
     const totalCount = allUrls.length;
     // Seuils pour détecter les images de qualité 
     filterAndEnrichImages(allUrls, 500, 200000)
@@ -147,7 +174,12 @@ export function registerChromeMessageListener() {
  */
 export async function updateImagesData() {
   if (!document.getElementById('tto-extension-container')) return;
-  const allUrls = await collectAllUrlsEnhanced();
+  
+  // Récupérer l'état du toggle depuis l'interface si possible
+  const optimizedToggle = document.querySelector('.shadow-toggle-input');
+  const useOptimized = optimizedToggle ? optimizedToggle.checked : false;
+  
+  const allUrls = getUrlsByMode(useOptimized);
   const totalCount = allUrls.length;
   // Utiliser les seuils de qualité
   filterAndEnrichImages(allUrls, 500, 200000).then(imagesWithFormat => {

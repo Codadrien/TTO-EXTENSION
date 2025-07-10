@@ -180,7 +180,23 @@
 .image-counts {
     font-family: rubik;
     font-size: 14px;
+    padding-bottom: 10px;
 }
+
+.stats-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    line-height: 1.2;
+    gap: 10px;
+}
+
+.stats-text {
+    flex: 1;
+}
+
+/* Les styles du toggle shadow sont déjà définis dans ProductTypeSelector.css 
+   et sont réutilisés ici via les mêmes classes CSS */
 
 /* Styles supplémentaires pour le footer - intégrés ci-dessus */
 

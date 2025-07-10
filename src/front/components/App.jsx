@@ -57,6 +57,9 @@ function App() {
   const [totalCount, setTotalCount] = useState(0);
   const [largeCount, setLargeCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // État pour le scraper amélioré
+  const [optimizedScrapingEnabled, setOptimizedScrapingEnabled] = useState(false);
 
   // States pour la sélection et le traitement
   const [selectedOrder, setSelectedOrder] = useState({});
@@ -283,6 +286,24 @@ function App() {
   };
 
   /**
+   * Fonction pour gérer le toggle du scraper optimisé
+   */
+  const handleOptimizedScrapingChange = (isEnabled) => {
+    console.log('[App] handleOptimizedScrapingChange appelé avec:', isEnabled);
+    setOptimizedScrapingEnabled(isEnabled);
+    console.log('[App] Scraper optimisé:', isEnabled ? 'activé' : 'désactivé');
+    
+    // Sauvegarder l'état automatiquement
+    saveState('optimizedScrapingEnabled', isEnabled);
+    
+    // Déclencher l'événement pour informer le content script
+    console.log('[App] Dispatch TTO_ENHANCED_SCRAPING_CHANGED avec enabled:', isEnabled);
+    document.dispatchEvent(new CustomEvent('TTO_ENHANCED_SCRAPING_CHANGED', {
+      detail: { enabled: isEnabled }
+    }));
+  };
+
+  /**
    * Gère le clic sur le bouton d'importation
    */
   const handleImportClick = () => {
@@ -364,6 +385,12 @@ function App() {
             setShadowModeEnabled(savedStates[STORAGE_KEYS.SHADOW_MODE_ENABLED]);
           }
           
+          // Restaurer l'état du scraper amélioré
+                      if (typeof savedStates.optimizedScrapingEnabled === 'boolean') {
+              console.log('[App] Restauration du scraper optimisé:', savedStates.optimizedScrapingEnabled);
+              setOptimizedScrapingEnabled(savedStates.optimizedScrapingEnabled);
+            }
+          
           setStatesRestored(true);
           console.log('[App] États restaurés avec succès:', savedStates);
         }, 100); // Délai pour laisser le temps aux composants de se monter
@@ -440,6 +467,8 @@ function App() {
           totalCount={totalCount}
           largeCount={largeCount}
           imagesFromZip={imagesFromZip}
+          optimizedScrapingEnabled={optimizedScrapingEnabled}
+          onOptimizedScrapingChange={handleOptimizedScrapingChange}
         />
         
         {/* Sélecteur de type de produit */}
