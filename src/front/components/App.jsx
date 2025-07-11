@@ -59,7 +59,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   
   // État pour le scraper amélioré
-  const [optimizedScrapingEnabled, setOptimizedScrapingEnabled] = useState(false);
+  const [optimizedScrapingEnabled, setOptimizedScrapingEnabled] = useState(true);
 
   // States pour la sélection et le traitement
   const [selectedOrder, setSelectedOrder] = useState({});
