@@ -2,7 +2,7 @@
 // Initializes image scraping and event handling for the extension
 
 import { registerChromeMessageListener, updateImagesData } from './eventHandlers.js';
-import { startFormInjector } from './formInjector.js';
+import { startCustomBoTTO } from './customBoTTO.js';
 
 // Protection contre les multiples injections du content script
 if (window.ttoContentScriptInjected) {
@@ -30,6 +30,6 @@ if (window.ttoContentScriptInjected) {
   // Initialisation du listener
   registerChromeMessageListener();
   
-  // Initialisation du système d'injection de formulaire
-  startFormInjector();
+  // Initialisation du système d'injection de formulaire et duplication de bouton
+  startCustomBoTTO();
 }

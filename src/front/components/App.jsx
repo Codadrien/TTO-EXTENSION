@@ -424,6 +424,19 @@ function App() {
     };
   }, []);
 
+  // Effect pour activer le scraping optimisé au démarrage si nécessaire
+  useEffect(() => {
+    if (statesRestored && optimizedScrapingEnabled) {
+      // Attendre un peu pour laisser le temps aux URLs originaux de se charger
+      setTimeout(() => {
+        console.log('[App] Activation automatique du scraper optimisé au démarrage');
+        document.dispatchEvent(new CustomEvent('TTO_ENHANCED_SCRAPING_CHANGED', {
+          detail: { enabled: true }
+        }));
+      }, 500); // 500ms de latence pour laisser le temps au système de se stabiliser
+    }
+  }, [statesRestored, optimizedScrapingEnabled]);
+
   // Effect pour mettre à jour les informations d'images
   useEffect(() => {
     const updateImageInfos = () => {

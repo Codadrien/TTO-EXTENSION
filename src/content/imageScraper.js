@@ -74,25 +74,34 @@ export function collectImagesByMode(optimizedMode = false) {
 }
 
 /**
- * Mode optimisé : force 2000px en modifiant les paramètres existants + supprime doublons
+ * Mode optimisé : force 2000px avec fond blanc pour Scene7, sinon utilise scrapCdn classique
+ * NOUVEAU : Intègre generateWhiteBackgroundUrl pour les URLs Scene7
  * @param {string[]} urls - URLs originales
  * @returns {string[]} - URLs optimisées et dédoublonnées
  */
 function optimizeFor2000px(urls) {
   const optimized = urls.map(url => {
-    // NOUVELLE STRATÉGIE : modifier paramètres pour forcer 2000x2000px
+    console.log(`[optimizeFor2000px] Traitement de: ${url}`);
     
+    // STRATÉGIE 1 : Si c'est une URL Scene7, utiliser generateWhiteBackgroundUrl
+    if (url.includes('scene7.com') || url.includes('/is/image/')) {
+      const result = generateWhiteBackgroundUrl(url, 2000, 'FFFFFF');
+      console.log(`[optimizeFor2000px] Scene7 avec fond blanc: ${url} → ${result}`);
+      return result;
+    }
+    
+    // STRATÉGIE 2 : Pour les autres CDN, utiliser la logique existante
     const questionMarkIndex = url.indexOf('?');
     if (questionMarkIndex !== -1) {
       // URL a des paramètres - les modifier pour forcer 2000px
       const result = scrapCdn(url, 2000);
-      console.log(`[optimizeFor2000px] Paramètres modifiés pour 2000px: ${url} → ${result}`);
+      console.log(`[optimizeFor2000px] CDN classique modifié: ${url} → ${result}`);
       return result;
     } else {
       // URL sans paramètres - essayer d'ajouter des paramètres 2000px
       const result = scrapCdn(url, 2000);
       if (result !== url) {
-        console.log(`[optimizeFor2000px] Paramètres 2000px ajoutés: ${url} → ${result}`);
+        console.log(`[optimizeFor2000px] CDN classique paramètres ajoutés: ${url} → ${result}`);
         return result;
       } else {
         console.log(`[optimizeFor2000px] Aucune optimisation possible: ${url}`);
@@ -104,6 +113,7 @@ function optimizeFor2000px(urls) {
   // Supprimer tous les doublons
   const unique = [...new Set(optimized)];
   console.log(`[optimizeFor2000px] ${urls.length} URLs → ${unique.length} après optimisation et dédoublonnage`);
+  console.log(`[optimizeFor2000px] Premières URLs optimisées:`, unique.slice(0, 3));
   return unique;
 }
 
@@ -172,6 +182,123 @@ export function getRealFormat(url) {
 }
 
 /**
+ * Génère une URL Scene7 optimisée pour obtenir une image 2000x2000px avec fond blanc
+ * Utilise les paramètres Scene7 pour forcer le fond blanc et la taille
+ * @param {string} originalUrl - URL Scene7 originale
+ * @param {number} [targetSize=2000] - Taille cible en pixels (carré)
+ * @param {string} [backgroundColor='FFFFFF'] - Couleur de fond en hexadécimal (sans #)
+ * @returns {string} - URL modifiée avec fond blanc
+ */
+export function generateWhiteBackgroundUrl(originalUrl, targetSize = 2000, backgroundColor = 'FFFFFF') {
+  try {
+    console.log(`[generateWhiteBackgroundUrl] URL originale: ${originalUrl}`);
+    
+    // Étape 1 : Vérifier si c'est bien une URL Scene7
+    if (!originalUrl.includes('scene7.com') && !originalUrl.includes('/is/image/')) {
+      console.warn(`[generateWhiteBackgroundUrl] URL non-Scene7 détectée, retour de l'URL originale`);
+      return originalUrl;
+    }
+    
+    // Étape 2 : Séparer l'URL de base et les paramètres existants
+    const [baseUrl, existingParams] = originalUrl.split('?');
+    console.log(`[generateWhiteBackgroundUrl] URL de base: ${baseUrl}`);
+    console.log(`[generateWhiteBackgroundUrl] Paramètres existants: ${existingParams || 'aucun'}`);
+    
+    // Étape 3 : Créer les nouveaux paramètres pour fond blanc + taille
+    const params = [];
+    
+    // Paramètres Scene7 pour fond blanc et taille
+    params.push(`wid=${targetSize}`);        // Largeur
+    params.push(`hei=${targetSize}`);        // Hauteur
+    params.push(`bgc=${backgroundColor}`);   // Couleur de fond (hex sans #)
+    params.push(`fit=constrain`);            // Maintient les proportions, ajoute du fond
+    params.push(`fmt=jpeg`);                 // Format JPEG
+    
+    // Étape 4 : Conserver certains paramètres existants si pertinents
+    if (existingParams) {
+      const existingPairs = existingParams.split('&');
+      
+      for (const pair of existingPairs) {
+        const [key, value] = pair.split('=');
+        if (!key) continue;
+        
+        // Conserver le format original si spécifié (sauf webp/avif)
+        if (key === 'fmt' && value && !['webp', 'avif'].includes(value)) {
+          // Remplacer le fmt=png par le format original
+          const fmtIndex = params.findIndex(p => p.startsWith('fmt='));
+          if (fmtIndex !== -1) {
+            params[fmtIndex] = `fmt=${value}`;
+          }
+        }
+        
+        // Conserver d'autres paramètres utiles
+        if (['layer', 'src', 'mask'].includes(key)) {
+          params.push(`${key}=${value}`);
+        }
+      }
+    }
+    
+    // Étape 5 : Construire l'URL finale
+    const finalUrl = `${baseUrl}?${params.join('&')}`;
+    console.log(`[generateWhiteBackgroundUrl] URL finale: ${finalUrl}`);
+    
+    return finalUrl;
+    
+  } catch (error) {
+    console.error(`[generateWhiteBackgroundUrl] Erreur lors de la modification:`, error);
+    console.log(`[generateWhiteBackgroundUrl] Fallback: retour de l'URL originale`);
+    return originalUrl;
+  }
+}
+
+/**
+ * Fonction de fallback : supprime tous les paramètres après le '?' pour obtenir l'image brute
+ * Utile si les paramètres Scene7 ne fonctionnent pas comme attendu
+ * @param {string} originalUrl - URL avec paramètres
+ * @returns {string} - URL sans paramètres
+ */
+export function getCleanImageUrl(originalUrl) {
+  try {
+    const [baseUrl] = originalUrl.split('?');
+    console.log(`[getCleanImageUrl] URL nettoyée: ${baseUrl}`);
+    return baseUrl;
+  } catch (error) {
+    console.error(`[getCleanImageUrl] Erreur:`, error);
+    return originalUrl;
+  }
+}
+
+/**
+ * Fonction principale qui essaie d'abord les paramètres Scene7, puis le fallback
+ * @param {string} originalUrl - URL Scene7 originale
+ * @param {number} [targetSize=2000] - Taille cible
+ * @returns {Promise<string>} - Meilleure URL disponible
+ */
+export async function getBestWhiteBackgroundUrl(originalUrl, targetSize = 2000) {
+  console.log(`[getBestWhiteBackgroundUrl] Traitement de: ${originalUrl}`);
+  
+  // Stratégie 1 : Essayer avec les paramètres Scene7
+  const urlWithWhiteBg = generateWhiteBackgroundUrl(originalUrl, targetSize);
+  
+  // Test rapide pour voir si l'URL fonctionne
+  try {
+    const response = await fetch(urlWithWhiteBg, { method: 'HEAD' });
+    if (response.ok) {
+      console.log(`[getBestWhiteBackgroundUrl] URL avec fond blanc validée`);
+      return urlWithWhiteBg;
+    }
+  } catch (error) {
+    console.warn(`[getBestWhiteBackgroundUrl] URL avec paramètres échouée:`, error.message);
+  }
+  
+  // Stratégie 2 : Fallback vers URL nettoyée
+  console.log(`[getBestWhiteBackgroundUrl] Fallback vers URL nettoyée`);
+  const cleanUrl = getCleanImageUrl(originalUrl);
+  
+  return cleanUrl;
+}
+
+/**
  * Récupère le poids d'une image via HEAD pour lire Content-Length
  * @param {string} url
  * @returns {Promise<number|null>}
@@ -201,7 +328,7 @@ export function getImageWeight(url) {
  * @returns {Promise<{url:string,format:string,weight:number|null}[]>}
  */
 export async function filterAndEnrichImages(urls, threshold = 500, areaThreshold = 200000) {
-  const measures = await Promise.all(urls.map((originalUrl, index) =>
+  const measures = await Promise.all(urls.map((originalUrl) =>
     new Promise(resolve => {
       const img = new Image();
       
