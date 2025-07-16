@@ -10,15 +10,34 @@ const PIXIAN_API_SECRET = import.meta.env.VITE_PIXIAN_API_SECRET;
 /**
  * Convertit les marges depuis le format objet vers le format string Pixian
  * @param {Object} margins - Marges au format {top, right, bottom, left}
- * @returns {string} - Marges au format Pixian "top% right% bottom% left%"
+ * @returns {string} - Marges au format Pixian "top% right% bottom% left%" (avec unités %)
  */
 function formatMarginsForPixian(margins) {
-  const top = Math.round(margins.top * 100);
-  const right = Math.round(margins.right * 100);
-  const bottom = Math.round(margins.bottom * 100);
-  const left = Math.round(margins.left * 100);
+  // Vérifier que l'objet margins existe et a les bonnes propriétés
+  if (!margins || typeof margins !== 'object') {
+    console.warn('[formatMarginsForPixian] Objet margins invalide, utilisation de marges par défaut');
+    return '5% 5% 5% 5%'; // Marges par défaut de 5%
+  }
   
-  return `${top}% ${right}% ${bottom}% ${left}%`;
+  // Extraire les valeurs avec des valeurs par défaut pour éviter NaN
+  const top = typeof margins.top === 'number' ? Math.round(margins.top * 100) : 5;
+  const right = typeof margins.right === 'number' ? Math.round(margins.right * 100) : 5;
+  const bottom = typeof margins.bottom === 'number' ? Math.round(margins.bottom * 100) : 5;
+  const left = typeof margins.left === 'number' ? Math.round(margins.left * 100) : 5;
+  
+  // Vérifier que toutes les valeurs sont valides
+  const values = [top, right, bottom, left];
+  const hasInvalidValue = values.some(val => isNaN(val) || val < 0 || val > 100);
+  
+  if (hasInvalidValue) {
+    console.warn('[formatMarginsForPixian] Valeurs de marges invalides détectées:', { top, right, bottom, left });
+    return '5% 5% 5% 5%'; // Marges par défaut de 5%
+  }
+  
+  // Retourner les valeurs avec le symbole % (format requis par l'API Pixian)
+  const result = `${top}% ${right}% ${bottom}% ${left}%`;
+  console.log('[formatMarginsForPixian] Marges formatées pour Pixian:', result);
+  return result;
 }
 
 /**
