@@ -126,6 +126,17 @@ function optimizeFor2000px(urls) {
 export function scrapCdn(urlString, maxSize = 2000) {
   let newUrl = urlString;
   
+  // === TRAITEMENT SPÉCIFIQUE CLOUDINARY DECKERS ===
+  // Pour les URLs Cloudinary Deckers, on ajoute un fond blanc automatiquement
+  // Détection : URLs contenant "dms.deckers.com" et "/upload/"
+  if (newUrl.includes('dms.deckers.com') && newUrl.includes('/upload/')) {
+    // Ajoute "b_white," juste après "/upload/" pour forcer un fond blanc
+    // Exemple : /upload/t_slider → /upload/b_white,t_slider
+    newUrl = newUrl.replace(/\/upload\//, '/upload/b_white,');
+    console.log(`[scrapCdn] Cloudinary Deckers - fond blanc ajouté: ${urlString} → ${newUrl}`);
+  }
+  
+  // === OPTIMISATION DIMENSIONS POUR TOUS LES CDN ===
   // Remplace les dimensions de type `w_123` et `h_123` (Cloudinary, etc.)
   // CORRIGÉ: utiliser des regex plus précises pour éviter de capturer dans les noms de fichiers
   newUrl = newUrl.replace(/\bw_(\d+)/gi, `w_${maxSize}`);
