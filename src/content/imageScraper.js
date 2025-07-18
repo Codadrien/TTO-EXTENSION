@@ -126,6 +126,20 @@ function optimizeFor2000px(urls) {
 export function scrapCdn(urlString, maxSize = 2000) {
   let newUrl = urlString;
   
+  // === TRAITEMENT SPÉCIFIQUE CONTENTFUL ===
+  // Pour les URLs Contentful, on génère une URL avec fond blanc, format JPG et dimensions 2000x2000
+  // Détection : URLs contenant "ctfassets.net"
+  if (newUrl.includes('ctfassets.net')) {
+    // Supprime tous les paramètres existants et ajoute seulement ceux nécessaires
+    const questionMarkIndex = newUrl.indexOf('?');
+    const baseUrl = questionMarkIndex !== -1 ? newUrl.substring(0, questionMarkIndex) : newUrl;
+    
+    // Génère une URL avec les paramètres optimaux pour Contentful
+    newUrl = `${baseUrl}?fm=jpg&w=${maxSize}&h=${maxSize}`;
+    console.log(`[scrapCdn] Contentful - URL optimisée: ${urlString} → ${newUrl}`);
+    return newUrl; // Retour immédiat pour Contentful, pas d'autres optimisations
+  }
+  
   // === TRAITEMENT SPÉCIFIQUE CLOUDINARY DECKERS ===
   // Pour les URLs Cloudinary Deckers, on ajoute un fond blanc automatiquement
   // Détection : URLs contenant "dms.deckers.com" et "/upload/"
